@@ -23,11 +23,11 @@ def log(message, tb=None):
     # f'func = {frame.f_code.co_name}'
     # f'mod_name = {frame.f_globals["__name__"]}'
     # f'class_name = {frame.f_locals["self"].__class__.__name__}'
-    time_str = str(datetime.datetime.now())[:-3]
+    time_str = str(datetime.datetime.now())[:19]
     # Write the record. No need to be synchronized across multiple sbot plugins
     # as ST docs say that API runs on a single thread.
-    with open(LOGF, 'a') as log:
-        out_line = "{0} {1}:{2} {3}".format(time_str, fn, str(line).ljust(4), message)
+    with open(LOGF, 'a', encoding='utf-8') as log:
+        out_line = "{0} {1}:{2} {3}".format(time_str, fn.ljust(20), str(line).ljust(4), message)
         log.write(out_line + '\n')
         if tb is not None:
             # The traceback formatter is a bit ugly - clean it up.
@@ -40,66 +40,69 @@ def log(message, tb=None):
         log.flush()
 def debugprint(x=None):
   global viewhint
-  x=sys._getframe().f_back.f_code.co_name.ljust(15)+' '+(x or '')
+  n=sys._getframe().f_back.f_code.co_name
+  x='{0} {1}'.format(
+    ( sys._getframe().f_back.f_locals.get("self").__class__.__name__+'.'+n
+      if any(y==n for y in ['run','on_init'])
+      else n
+    ).ljust(20)
+    ,'None' if x is None else (x if isinstance(x,str) else str(x)))
   sys.stdout.write(x+"\n")
   m=['-',' '][viewhint%2]
   log(m*viewhint+str(viewhint%10)+m*(20-viewhint)+' ' + x); 
   viewhint+=1
-  if viewhint>=20: viewhint=0 
-  pass
-class DCommand(sublime_plugin.TextCommand): #run_command('d',{'x':
-  def run(self, edit, x=''):
-    debugprint(x)
+  if viewhint>=20: viewhint=0
 
-class E20260831(sublime_plugin.EventListener):
-  def on_text_command(self, view, command_name, args):
-    if command_name == "undo":
-      debugprint("undo")
-      return None
+# class E20260831(sublime_plugin.EventListener):
+#   def on_text_command(self, view, command_name, args):
+#     if command_name == "undo":
+#       debugprint("undo")
+#       return None
 #   def on_init(self, views):
 #     print(str(self))
 #     file_path = self.views[0].file_name() # cannot get py folder
 #     folder_path = os.path.dirname(file_path)
 #     folder_name = os.path.basename(folder_path)
 #     print("SIGSTUDY Folder Path:"+folder_path)
-class E1Command(sublime_plugin.TextCommand): #run_command('e1')
-  def run(self, edit):
-    self.view.add_regions('R', [self.view.sel()[0]], "region.orangish", 'Packages/Theme - Default/common/label.png')
-class StudyEvent(sublime_plugin.EventListener):
-    def on_init(self, views):
-      debugprint()
-    #     for view in views:
-    #         debugprint(view.file_name())
-    def on_load_project(self, window):
-        debugprint()
-        debugprint(self.view.window().project_file_name())
-        # for view in window.views():
-    def on_pre_close_project(self, window):
-        debugprint()
-        debugprint(self.view.window().project_file_name())
-    def on_load(self, view):
-        debugprint(view.file_name())
-    def on_pre_close(self, view):
-        debugprint(view.file_name())
-    def on_deactivated(self, view):
-        debugprint(view.file_name())
-    def on_activated(self, view):
-        debugprint(view.file_name())
-        # debugprint('attrtest '+str(getattr(view, "_my_plugin_initialized", False)))
-        # if not getattr(view, "_my_plugin_initialized", False):
-        #     view._my_plugin_initialized = True
-        # debugprint('attrtest '+str(getattr(view, "_my_plugin_initialized", False)))
+# class E1Command(sublime_plugin.TextCommand): #run_command('e1')
+#   def run(self, edit):
+#     debugprint()
+#     self.view.add_regions('R', [self.view.sel()[0]], "region.orangish", 'Packages/Theme - Default/common/label.png')
+# class StudyEvent(sublime_plugin.EventListener):
+#     def on_init(self, views):
+#       debugprint()
+#     #     for view in views:
+#     #         debugprint(view.file_name())
+#     def on_load_project(self, window):
+#         debugprint()
+#         debugprint(self.view.window().project_file_name())
+#         # for view in window.views():
+#     def on_pre_close_project(self, window):
+#         debugprint()
+#         debugprint(self.view.window().project_file_name())
+#     def on_load(self, view):
+#         debugprint(view.file_name())
+#     def on_pre_close(self, view):
+#         debugprint(view.file_name())
+#     def on_deactivated(self, view):
+#         debugprint(view.file_name())
+#     def on_activated(self, view):
+#         debugprint(view.file_name())
+#         # debugprint('attrtest '+str(getattr(view, "_my_plugin_initialized", False)))
+#         # if not getattr(view, "_my_plugin_initialized", False):
+#         #     view._my_plugin_initialized = True
+#         # debugprint('attrtest '+str(getattr(view, "_my_plugin_initialized", False)))
 
-        # debugprint('attrtest '+str(view.settings().get("_my_plugin_initialized",False)))
-        # view.settings().set("_my_plugin_initialized",True)
-        # debugprint('attrtest '+str(view.settings().get("_my_plugin_initialized",False)))
-    def on_reload(self, view):
-        debugprint(view.file_name())
-    def on_reload_async(self, view):
-        debugprint(view.file_name())
-    def on_revert(self, view):
-        debugprint(view.file_name())
-    def on_revert_async(self, view):
-        debugprint(view.file_name())
-    def on_post_save(self, view):
-        debugprint(view.file_name())
+#         # debugprint('attrtest '+str(view.settings().get("_my_plugin_initialized",False)))
+#         # view.settings().set("_my_plugin_initialized",True)
+#         # debugprint('attrtest '+str(view.settings().get("_my_plugin_initialized",False)))
+#     def on_reload(self, view):
+#         debugprint(view.file_name())
+#     def on_reload_async(self, view):
+#         debugprint(view.file_name())
+#     def on_revert(self, view):
+#         debugprint(view.file_name())
+#     def on_revert_async(self, view):
+#         debugprint(view.file_name())
+#     def on_post_save(self, view):
+#         debugprint(view.file_name())

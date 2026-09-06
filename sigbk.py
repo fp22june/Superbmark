@@ -11,6 +11,12 @@ import sublime_plugin
 import json
 import bisect
 import time
+import copy
+try:
+  from .sublimeapistudy import debugprint
+except ImportError:
+  def debugprint(*args, **kwargs):
+    pass
 SIGNETVIEW_NAMEID = 'Find Results'#'🔖'
 SIGNET_REGION_NAME = 'signet_region2'
 SIGNET_ICON = 'Packages/Theme - Default/common/label.png'
@@ -33,7 +39,6 @@ ENUMSIGSCOPE=['DATAHOT','DATAFILETIME'] #Scope0Sig, Scope1Sig
 INVALIDSIG='ARCHIVE'
 S1NAMETS='TIMESTAMP'
 S1NAMETSLOCAL='TIMESTAMPLOCAL'
-def debugprint(view,x):view.run_command('d',{'x':x}) #sublimeapistudy.py
 
 def sigrowlistFromViewRegions(view):
     lns = []
@@ -48,6 +53,7 @@ def newProject(x):                    SESSIONSIGS[x]={}; return SESSIONSIGS[x]
 def getProject(x):                    return SESSIONSIGS.get(x)
 def newFile(p,f):                     p[f]={}; return p[f]
 def getFile(p,f):                     return p.get(f) if p is not None else None
+def setFile(p,f,fos):                 p[f]=fos
 def newScopedSigsOfFile(s,p,f):       rs=getFile(p,f) or newFile(p,f); rs[s]=[]; return rs[s]      # p=getProject(str), f=view.file_name()
 def getScopedSigsOfFile(s,p,f):       return rs.get(s)                 if(rs:=getFile(p,f)) is not None else None
 def setScopedSigsOfFile(s,p,f,obs):   rs=getFile(p,f) or newFile(p,f); rs[s]=obs
@@ -74,7 +80,7 @@ def updateScope0SigFromViewRegions(view):
   if (  (f:=view.file_name())
     and (w:=view.window())
     and (pf:=w.project_file_name()) # is project
-    and (p:=getProject(pf)) is not None # already has entry
+    and (p:=getProject(pf)) is not None # {}empty truthy
     and (obs:=getScopedSigsOfFile('DATAHOT',p,f)) is not None # empty[] truthy
     and (rs:=sigrowlistFromViewRegions(view)) is not None # empty[] truthy
   ):
@@ -101,7 +107,7 @@ def updateScope0SigFromScope1Sig(view):
   if(   (f:=view.file_name()) 
     and (w:=view.window())
     and (pf:=w.project_file_name()) # is project
-    and (p:=getProject(pf)) is not None # already has entry
+    and (p:=getProject(pf)) is not None # {}empty truthy
     # and os.path.exists(f)
     and (tf:=os.path.getmtime(view.file_name()))
     and (ts:=getScope1TSOfFile(p,f))
@@ -129,8 +135,8 @@ def updateScope0SigFromScope1Sig(view):
       else:
         sublime.status_message(u"🔖 Reverted / File modification detected, {0} / {1} invalid bookmark{2} archived.".format(len(iobs),len(obs),'s' if len(iobs)>1 else ''))
       # if 0<len(iobs):
-      #   debugprint(view,'{0} archived'.format(len(iobs)))
-      #   [debugprint(view,y) for y in
+      #   debugprint('{0} archived'.format(len(iobs)))
+      #   [debugprint(y) for y in
       #     [ ('\n ln#'+str(p['ln']).ljust(4) + str(p['tp'])                                           +':'+str(p['c'])
       #       +'\n '+      '(now)'.ljust(3+4) + time.strftime("%Y-%m-%d %a %H:%M:%S", time.localtime())+':'+view.substr(view.line(view.text_point(p["ln"], 0)))
       #       ) for p in iobs ] ]
@@ -139,7 +145,7 @@ def updateViewRegionsFromScopedSig(s,view):
     and (f:=view.file_name())
     and (w:=view.window())
     and (pf:=w.project_file_name()) # is project
-    and (p:=getProject(pf)) is not None # already has entry
+    and (p:=getProject(pf)) is not None # {}empty truthy
     and (obs:=getScopedSigsOfFile(s,p,f)) is not None # empty[] truthy
   ):
     regions=[
@@ -151,7 +157,7 @@ def updateViewRegionsFromScopedSig(s,view):
     view.erase_regions(SIGNET_REGION_NAME)
     view.add_regions(SIGNET_REGION_NAME, regions, str(sublime.load_settings(SETTINGSF).get('scope') or "region.redish"), SIGNET_ICON)
 def addViewRegionsFromScopedSig(s,pf,f,view): # partial dup of updateViewRegionsFromScopedSig(), lesser conditional for performance
-  if (  (p:=getProject(pf)) is not None # already has entry
+  if (  (p:=getProject(pf)) is not None # {}empty truthy
     and (obs:=getScopedSigsOfFile(s,p,f)) is not None # empty[] truthy
   ):
     regions=[
@@ -174,9 +180,10 @@ def toggleScopedSig(s,p,f,r,view):
 def updateSessionsigsFromDiskreadJson():
   global SESSIONSIGS
   SESSIONSIGS=newSessionsigs()
-  if os.path.isfile(DEBUGSTARTLOADDATAJSON or LOADDATAJSON):
+  f=DEBUGSTARTLOADDATAJSON or LOADDATAJSON
+  if os.path.isfile(f):
     try:
-      with open(DEBUGSTARTLOADDATAJSON or LOADDATAJSON, 'r') as j:
+      with open(f, 'r') as j:
         jd=json.load(j)
         loadedver=jd.get('ver')
         for pf, fs in jd.items(): # if os.path.exists(pf):     #mod retain invalid
@@ -209,9 +216,9 @@ def updateSessionsigsFromDiskreadJson():
                 SESSIONSIGS[pf][fn]['DATAHOT'] = [{"ln": o} for o in ds]
       # print('sigbk json diskread')
       # print(SESSIONSIGS)
-    except Exception:
+    except Exception as e:
+      debugprint(f'Failed to read {f}: {e}')
       raise
-    #   error(f'Error reading {LOADDATAJSON}: {e}', e.__traceback__)
 def writeJsonWithSessionsigs():
   timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
   temp_file = f"{SAVEDATAJSON}.{timestamp}.tmp"
@@ -227,11 +234,34 @@ def writeJsonWithSessionsigs():
                 for pf, fs in SESSIONSIGS.items() if pf != 'ver'
               }, fp, indent=2)
       os.replace(temp_file, SAVEDATAJSON)
-  except Exception:
-      if os.path.exists(temp_file):
-          pass#os.remove(temp_file)
+  except Exception as e:
+      debugprint(f'Failed to write {f}: {e}')
+      # if os.path.exists(temp_file):
+      #   os.remove(temp_file)
       raise
 
+def getfindresultsview(view):
+  if (w:=view.window()):
+    for vs in w.views():
+      if SIGNETVIEW_NAMEID in vs.name():
+        return vs
+def newfindresultsview(view):
+  if (w:=view.window()):
+    v=w.new_file()
+    v.set_name(SIGNETVIEW_NAMEID)
+    v.set_scratch(True)
+    v.settings().set('line_numbers', False)
+    v.settings().set('word_wrap', False)
+    # v.settings().set('fold_buttons', False)
+    # v.settings().set('highlight_line', False)
+    v.settings().set('margin', 0)
+    #https://forum.sublimetext.com/t/set-layout-reference/5713
+    # w.set_layout({
+    #   "cols"  : [0.0, 0.7, 1.0],
+    #   "rows"  : [0.0, 1.0],
+    #   "cells" : [[0, 0, 1, 1], [1, 0, 2, 1]]
+    # })
+    return v
 class E20260901(sublime_plugin.EventListener):
   def on_init(self, views):
     updateSessionsigsFromDiskreadJson()
@@ -245,8 +275,8 @@ class E20260901(sublime_plugin.EventListener):
         if not view.is_dirty():
           updateScope0SigFromScope1Sig(view)
         updateViewRegionsFromScopedSig('DATAHOT',view)
-  def on_load(self, view):
-    updateSessionsigsFromDiskreadJson() #TODO reduce diskread
+  def on_load(self, view): # by file>load (after on_activated, which newScope1() mod session w/o write yet); also openpaneltypingpreview
+    # updateSessionsigsFromDiskreadJson()  bug if file>load (after on_activated, which newScope1() mod session w/o write yet)
     if not view.is_dirty(): # needed?
       updateScope0SigFromScope1Sig(view)
     updateViewRegionsFromScopedSig('DATAHOT',view)
@@ -271,27 +301,39 @@ class E20260901(sublime_plugin.EventListener):
       pass # symlist plugin
     else:
       rs=sigrowlistFromViewRegions(view)
+      m=''
       if len(rs)==0: # tab right click > Split View
         if not view.is_dirty():
           updateScope0SigFromScope1Sig(view)
         updateViewRegionsFromScopedSig('DATAHOT',view)
         rs=sigrowlistFromViewRegions(view)
-      if len(rs)>1:
-        sublime.status_message(u"🔖 {0} bookmark{1}".format(len(rs),'s' if len(rs)>1 else ''))
+      if len(rs)>0:
+        m+=u"🔖 {0} bookmark{1} .".format(len(rs),'s' if len(rs)>1 else '')
+      if(
+        (f:=view.file_name()) 
+      and (w:=view.window())
+      and (pf:=w.project_file_name()) # is project
+      and  (p:=getProject(pf)) is not None # {}empty truthy
+      and (a:=getArchiveOfFile(p,f))
+      and len(a)>0
+      ): #[]empty falsy
+        m+=f" ⚠{len(a)} bookmark{'s' if len(a)>1 else ''} in archive."
+      sublime.status_message(m)
     #
     if(   not view.is_dirty()
       and (f:=view.file_name()) 
       and (w:=view.window())
       and (pf:=w.project_file_name()) # is project
-      and (p:=getProject(pf)) is not None # already has entry
+      and (p:=getProject(pf)) is not None # {}empty truthy
       and os.path.exists(f)
     ):
       if not (ts:=getScope1TSOfFile(p,f)):
-        if getScopedSigsOfFile('DATAHOT',p,f):
+        if getScopedSigsOfFile('DATAHOT',p,f): # []empty falsy
           newScope1TSAndSigFromScope0Sig(p,f,view)
         else:
           if len(sigrowlistFromViewRegions(view))>0:
             newScope1TSAndSigAndScope0SigFromViewRegions(p,f,view)
+        # to min diskread (ok to loss S1 if st crash), deferring writeJsonWithSessionsigs to on_deactivated or on_pre_close_project, cautious do not on_load:updateSessionsigsFromDiskreadJson() 
       elif ts!=os.path.getmtime(view.file_name()):
         # vanilla prompt
         pass
@@ -300,7 +342,7 @@ class E20260901(sublime_plugin.EventListener):
       and (f:=view.file_name()) 
       and (w:=view.window())
       and (pf:=w.project_file_name()) # is project
-      and (p:=getProject(pf)) is not None # already has entry
+      and (p:=getProject(pf)) is not None # {}empty truthy
       and (_:=getScopedSigsOfFile('DATAHOT',p,f)) is not None # empty[] truthy
       and os.path.exists(f)
     ):
@@ -314,7 +356,31 @@ class E20260901(sublime_plugin.EventListener):
       updateScope0SigFromScope1Sig(view)
       updateViewRegionsFromScopedSig('DATAHOT',view)
   # def on_revert_async(self, view): seems always after on_sync
-
+  def on_text_command(self, view, command_name, args): # on_undo ugly revive signets after undo cmd unconditionally
+    # if command_name=="undo":
+    if(   command_name=="undo"
+      and (f:=view.file_name()) 
+      and (w:=view.window())
+      and (pf:=w.project_file_name()) # is project
+      and (p:=getProject(pf)) is not None # {}empty truthy
+    ):
+      writeJsonWithSessionsigs()
+      if(fobspreundo:=getFile(p,f)):
+        def check():
+          # try:
+          rs=sigrowlistFromViewRegions(view)
+          # debugprint('rs'+str(rs))
+          if rs==[]:
+            setFile(p,f,fobspreundocopy)
+            updateViewRegionsFromScopedSig('DATAHOT',view)
+          # except Exception as e:
+          #   debugprint(e)
+        fobspreundocopy=copy.deepcopy(fobspreundo)
+        sublime.set_timeout(lambda:check(), 10)
+    # try:
+    #   debugprint(scope0preundo)
+    # except Exception as e:
+    #   debugprint(e)
 class SbotToggleSignetCommand(sublime_plugin.TextCommand):
   def is_visible(self):
     return self.view.is_scratch() is False and self.view.file_name() is not None
@@ -324,7 +390,7 @@ class SbotToggleSignetCommand(sublime_plugin.TextCommand):
       and (f:=view.file_name())
       and (w:=view.window())
       and (pf:=w.project_file_name()) # is project
-      # and (p:=getProject(pf)) is not None # already has entry
+      # and (p:=getProject(pf)) is not None # {}empty truthy
       # and (obs:=getScopedSigsOfFile('DATAHOT',p,f)) is not None # empty[] truthy
       and (rs:=sigrowlistFromViewRegions(view)) is not None # empty[] truthy
       and (caret:=view.sel()[0].b if len(view.sel()) == 1 else None) is not None # 0 truthy
@@ -356,7 +422,7 @@ class SbotGotoSignetCommand(sublime_plugin.TextCommand):
         and (fn:=view.file_name())
         and (w:=view.window())
         and (pf:=w.project_file_name()) # is project
-        and (ps:=getProject(pf)) is not None # already has entry
+        and (ps:=getProject(pf)) is not None # {}empty truthy
         # and (obs:=getScopedSigsOfFile('DATAHOT',ps,fn)) is not None # empty[] truthy
         # and (rs:=sigrowlistFromViewRegions(view)) is not None # empty[] truthy
         and (caret:=view.sel()[0].b if len(view.sel()) == 1 else None) is not None # 0 truthy
@@ -452,7 +518,7 @@ class SbotgenlistCommand(sublime_plugin.TextCommand):
       writeJsonWithSessionsigs()
     if (   (w:=view.window())
       and (pf:=w.project_file_name()) # is project
-      and (ps:=getProject(pf)) is not None # already has entry
+      and (ps:=getProject(pf)) is not None # {}empty truthy
     ):
       s=['']
       for fn in [ps for _, ps 
@@ -532,41 +598,12 @@ class SbotgenlistCommand(sublime_plugin.TextCommand):
               )
             )
         s.append(' ')
-
-      view_open=False
-      for vs in w.views():
-          if SIGNETVIEW_NAMEID in vs.name():
-            view_open=True
-            v=vs
-      if not view_open:
-        v=w.new_file()
-        v.set_name(SIGNETVIEW_NAMEID)
-      v.set_scratch(True)
-      v.settings().set('line_numbers', False)
-      v.settings().set('word_wrap', False)
-      # v.settings().set('fold_buttons', False)
-      # v.settings().set('highlight_line', False)
-      v.settings().set('margin', 0)
-      #https://forum.sublimetext.com/t/set-layout-reference/5713
-      # w.set_layout({
-      #   "cols"  : [0.0, 0.7, 1.0],
-      #   "rows"  : [0.0, 1.0],
-      #   "cells" : [[0, 0, 1, 1], [1, 0, 2, 1]]
-      # })
+      v=getfindresultsview(view) or newfindresultsview(view)
       w.set_view_index(v, 1, 0)
-      v.run_command('sbotshowlist', {'x': s})
+      v.run_command('sbotfindresultsappend',{'x':
+        f"\nListing bookmarks in {os.path.split(pf)[1].replace('.sublime-project', '')}\n"+'\n'.join(s)})
     else:
       sublime.status_message(u"🔖 no project bookmarks yet.")
-class SbotshowlistCommand(sublime_plugin.TextCommand): #run_command('sbotshowlist', {'x':
-  def run(self, edit, x=None):
-    if(   (w:=self.view.window())
-      and (f:=w.project_file_name())
-      and (p:=os.path.split(f))
-      and (s:=p[1].replace('.sublime-project', ''))
-    ):
-      #self.view.erase(edit, sublime.Region(0, self.view.size()))
-      self.view.insert(edit, self.view.size(), "{1}Listing bookmarks in {0}\n".format(s,"\n\n"if self.view.size()>0 else''))
-      self.view.insert(edit, self.view.size(), "\n".join(x))
 class SbotrequestsymlistbookmarkrowsCommand(sublime_plugin.TextCommand): #expose symlist
   def run(self, edit, x=[]):
     if len(x)>0:
@@ -596,19 +633,21 @@ class SbotlistarchivedCommand(sublime_plugin.TextCommand): #run_command('sbotlis
     if(   (f:=view.file_name())
       and (w:=view.window())
       and (pf:=w.project_file_name()) # is project
-      and (p:=getProject(pf)) is not None # already has entry
+      and (p:=getProject(pf)) is not None # {}empty truthy
       and (iobs:=getArchiveOfFile(p,f)) # empty[] falsy
     ):
-      v=w.new_file()
-      v.set_name('Archived bookmarks of {0}'.format(f))
-      v.set_scratch(True)
-      v.run_command('sbotappendarchiveview',{'x':f,'y':"\n".join(
-        [ ('\n ln#'+str(p['ln']).ljust(4) + str(p['tp'])                                           +':'+str(p['c'])
-          +'\n '+           ''.ljust(3+4) + str(p['tpa'])                                          +':'+str(p['ca'])
-          +'\n '+      '(now)'.ljust(3+4) + time.strftime("%Y-%m-%d %a %H:%M:%S", time.localtime())+':'+view.substr(view.line(view.text_point(p["ln"], 0)))
-          ) for p in iobs ] ) })
-class SbotappendarchiveviewCommand(sublime_plugin.TextCommand): #run_command('sbotappendarchiveview',{'x':
-  def run(self, edit, x='', y=''):
-    view=self.view
-    self.view.insert(edit,0, "Listing archived bookmarks of {0}\n".format(x))
-    self.view.insert(edit, self.view.size(), y)
+      v=getfindresultsview(view) or newfindresultsview(view)
+      w.set_view_index(v, 1, 0)
+      v.run_command('sbotfindresultsappend',{'x':
+        f"\nListing archived {len(iobs)} bookmark{'s' if len(iobs)>1 else''} of\n\n{f}:"+"\n".join(
+        [ ('\n'+str(p['ln']+1).rjust(5)+':@'
+          +'\n'+str(p['ln']+1).rjust(5)+': filestamp when bookmark added '+str(p['tp'])                                           +':'+str(p['c'])
+          +'\n'+str(p['ln']+1).rjust(5)+': ext mod detected, archived at '+str(p['tpa'])                                          +':'+str(p['ca'])
+          +'\n'+str(p['ln']+1).rjust(5)+': current                       '+time.strftime("%Y-%m-%d %a %H:%M:%S", time.localtime())+':'+view.substr(view.line(view.text_point(p["ln"], 0)))
+          ) for p in iobs ] )+'\n' })
+    else:
+      sublime.status_message(u"🔖 nothing in archive.")
+class SbotfindresultsappendCommand(sublime_plugin.TextCommand): #run_command('sbotfindresultsappend', {'x':
+  def run(self, edit, x=None):
+    #self.view.erase(edit, sublime.Region(0, self.view.size()))
+    self.view.insert(edit, self.view.size(), x if isinstance(x,str) else '')

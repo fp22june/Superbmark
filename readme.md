@@ -1,5 +1,8 @@
-demo video ![webm(2M)](https://raw.githubusercontent.com/fp22june/sublimetextbookmark/main/demo1.webm)
+demo video
 
+![loadding embedded gif(10M)](demo1.gif)
+
+![download webm(2M)](demo1.webm)
 ```
 2026Sep
   change/addfeature
@@ -23,6 +26,7 @@ demo video ![webm(2M)](https://raw.githubusercontent.com/fp22june/sublimetextboo
 
   todo,notes
     demo vid git checkoutsoft, archive feature
+    reenable cmd upstream iter signets in sel
     >6mo dist packagecontrol
     save at least two versions perfile?                              see also "<tricky" 
       DONE SCOPE0HOT        sync to (kind of) buffer, to handle splitview    https://www.sublimetext.com/docs/api_reference.html#sublime.Buffer
@@ -45,7 +49,6 @@ demo video ![webm(2M)](https://raw.githubusercontent.com/fp22june/sublimetextboo
   don't
     camel<>underscore   class NocamelyestextsearchCommand(sublime_plugin.TextCommand):  #run_command('nocamelyestextsearch'
     view.id()     int recycle;     set().add(vid)  seems not working  
-    storeread once only "at st start".
     do not trust AIs
       wrong logic  st event, lifecycle, data lifespan and scope
       wrong api syntax sometimes
@@ -111,7 +114,7 @@ demo video ![webm(2M)](https://raw.githubusercontent.com/fp22june/sublimetextboo
         discard regions                                               <tricky DONE
         save, load/ try sync   vanilla bookmark
     api
-      at st start; hot reload   plugin.py edit/save               <avoid only readstore once here. togglebookmark, st/proj close/oprn  changes store and need readstore
+      at st start; hot reload   plugin.py edit/save
         exec plugin.py root
         plugin_load()     view/window may not init yet
         plugin.py class on_init
@@ -127,9 +130,12 @@ demo video ![webm(2M)](https://raw.githubusercontent.com/fp22june/sublimetextboo
         on_pre_close_project        views[]           <diskwrite
         on_pre_close(view) etc       cautious  redundnat exec
       at tab rightlick > SplitView
-        on_deactivated    curent
-        on_activated      newsplitview  same file_name()
+        1 on_deactivated    curent
+        2 on_activated      newsplitview  same file_name()
         NO on_load
+      File>Open
+        1 on_activated
+        2 on_load
       ONLY triggered by
         load_project
           File>Project>Open project
@@ -139,4 +145,14 @@ demo video ![webm(2M)](https://raw.githubusercontent.com/fp22june/sublimetextboo
     cmd
       toggle                                            <diskwrite
       genlist                                            <diskwrite
+  mp4gifgithub
+    https://bnhr.xyz/2018/01/05/make-a-gif-from-a-video-using-ffmpeg-and-imagemagick-on-linux.html
+    https://usage.imagemagick.org/anim_basics/
+      ffmpeg -i III.mp4 -r 10 FFF/frame-%03d.png
+      magick  -delay 10 -loop 0 -layers Optimize FFF/*.png FFF/OOO.gif
+
+      C:\portable\ffmpeg-7.1-essentials_build\bin\ffmpeg.exe -i demo1.mp4 -r 10 C:\persist\desktop\t/frame-%03d.png
+      "C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe"  C:\persist\desktop\t/*.png -delay 1000/10 -loop 0 -layers Optimize C:\persist\desktop\t/demo1.gif
+    or
+      ffmpeg -i <input.mp4>  -r 10 -f image2pipe -vcodec ppm - | convert -delay 10 -loop 0 -layers Optimize - <output.gif>
 ```
