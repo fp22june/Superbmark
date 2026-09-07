@@ -4,6 +4,7 @@ demo video
 
 ![download webm(2M)](demo1.webm)
 ```
+bug report, pr, feature request, review welcome
 2026Sep
   change/addfeature
     disable function cmd nextbookmark openfileneeded part
@@ -20,7 +21,7 @@ demo video
     list archived bookmark cmd panel
     add text, add signet, close st, open, undo to del added text
   current issues
-    -
+    desync splitview.             < TODO toglecmd  if len(buffer().views())>1
 
   test  commented commits should run, never get forcepsuhed    \Sublime Text 4 x64\Data\Packages
   dev   numbered commits may not run, often get forcepushed
@@ -72,7 +73,7 @@ demo video
       insert
         auto adjust regions
         auto adjust vanilla bookmark
-      undo insert to del somehow (dirty, exit st, open, undo)    < TODO  , diy detct , no api on_undo
+      undo insert to del somehow (dirty, exit st, open, undo)    < DONE on_text_command revive signets after undo cmd unconditionally
         somehow del regions
         somehow del vanilla bookmark
       del                                                  <ignore,  user can decide with togglecmd
