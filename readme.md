@@ -18,10 +18,11 @@ demo video
     at view close; deny save prompt
     unmatched sigs at revert/extmod are archived, hinted at status bar
     list archived bookmark cmd panel
-  current issues
     add text, add signet, close st, open, undo to del added text
+  current issues
+    -
 
-  test  commented commits should run, never get forcepsuhed
+  test  commented commits should run, never get forcepsuhed    \Sublime Text 4 x64\Data\Packages
   dev   numbered commits may not run, often get forcepushed
 
   todo,notes
