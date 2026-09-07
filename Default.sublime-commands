@@ -1,11 +1,10 @@
 [
-    { "caption": "Signet Bookmarks: Toggle", "command": "sbot_toggle_signet" },
-    { "caption": "Signet Bookmarks: Next", "command": "sbot_goto_signet", "args": { "where": "next" } },
-    { "caption": "Signet Bookmarks: Previous", "command": "sbot_goto_signet", "args": { "where": "prev" } },
-    // { "caption": "Signet Bookmarks: Clear All", "command": "sbot_clear_all_signets" },
-    // { "caption": "Signet Bookmarks: Edit Settings", "command": "edit_settings", "args": { "base_file": "${packages}/SbotSignet/SbotSignet.sublime-settings", "default": "{\n$0\n}\n" } },
+    { "caption": "Superbmark: Toggle bookmark", "command": "superbmarktoggle" },
+    { "caption": "Superbmark: Next bookmark", "command": "superbmarkgoto", "args": { "where": "next" } },
+    { "caption": "Superbmark: Previous bookmark", "command": "superbmarkgoto", "args": { "where": "prev" } },
+    // { "caption": "Superbmark: Clear ", "command": "superbmarkclear" },
+    // { "caption": "Superbmark: Edit Settings", "command": "edit_settings", "args": { "base_file": "${packages}/Superbmark/superbmark.sublime-settings", "default": "{\n$0\n}\n" } },
 
-    { "caption": "Signet Bookmarks: List all in current project", "command": "sbotgenlist"},
-    // { "caption": "Signet Bookmarks: Open the storage json file", "command": "sbotopenjson"},
-    { "caption": "Signet Bookmarks: List archived bookmarks of current file", "command": "sbotlistarchived"},
+    { "caption": "Superbmark: List archived bookmarks of current file", "command": "superbmarklistarchived"},
+    { "caption": "Superbmark: List all bookmarks in current project", "command": "superbmarkgenlist"},
 ]

@@ -63,7 +63,7 @@ def debugprint(x=None):
 #     file_path = self.views[0].file_name() # cannot get py folder
 #     folder_path = os.path.dirname(file_path)
 #     folder_name = os.path.basename(folder_path)
-#     print("SIGSTUDY Folder Path:"+folder_path)
+#     print("APISTUDY Folder Path:"+folder_path)
 # class E1Command(sublime_plugin.TextCommand): #run_command('e1')
 #   def run(self, edit):
 #     debugprint()

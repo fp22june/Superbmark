@@ -1,8 +1,8 @@
 demo video
 
-![loadding embedded gif(10M)](demo1.gif)
+![loading embedded gif(10M)](demo1.gif)
 
-![download webm(2M)](demo1.webm)
+![download demo1.webm(2M)](https://raw.githubusercontent.com/fp22june/sublimetextbookmark/main/demo1.webm)
 ```
 bug report, pr, feature request, review welcome
 2026Sep
@@ -13,12 +13,12 @@ bug report, pr, feature request, review welcome
     list proj bookmarks w/ symbols (func/method name)
     symlist if bookmarks exist under each    https://blog.thul.org/technik/downloads/symlist-clickable-function-list-for-sublime-text/
     edited file, File>Revert
-    add signet, close st, file content overwritten externally (repo git ops), open
-    don't edit, add signet only, st stay open, file content overwritten externally (repo git ops) (st auto reload)
+    add bookmark, close st, file content overwritten externally (repo git ops), open
+    don't edit, add bookmark only, st stay open, file content overwritten externally (repo git ops) (st auto reload)
     at view close; deny save prompt
-    unmatched sigs at revert/extmod are archived, hinted at status bar
+    unmatched bookmarks at revert/extmod are archived, hinted at status bar
     list archived bookmark cmd panel
-    add text, add signet, close st, open, undo to del added text
+    add text, add bookmark, close st, open, undo to del added text
     update splitviews when toggle bookmark in either
   bugsreported
     -
@@ -28,17 +28,17 @@ bug report, pr, feature request, review welcome
 
   todo priority
     demo vid git checkoutsoft, archive feature
-    allow edit json in st, reloading SESSIONSIGS on_post_save 
+    allow edit json in st, reloading SESSION on_post_save 
     add man cmd eg. clear archive, clear hot, clear project
-    reenable cmd upstream iter signets in sel
+    reenable cmd upstream iter bookmarks in sel
     search show all matching lines of current in archiveview
     >6mo dist packagecontrol
   todo long
-    signets store lcoation options
+    bookmarks store lcoation options
       programfile/package  /.json                          <remain the same for now
       sublime-project      window.set_project_data( d) <notplanned
       per file overridedatafile, next to the actual, use if check exist
-        allow diff proj, same signets; allow rename folder; git man the datafile
+        allow diff proj, same bookmarks; allow rename folder; git man the datafile
         cautious public repo data leak
     save at least two versions perfile?                              see also "<tricky" 
       DONE SCOPE0HOT        sync to (kind of) buffer, to handle splitview    https://www.sublimetext.com/docs/api_reference.html#sublime.Buffer
@@ -49,7 +49,7 @@ bug report, pr, feature request, review welcome
   other notplanned; done
     gui action utests < too complex, notfornow
     plain json 
-      notplanned signets storage at sublime-worksp/project
+      notplanned bookmarks storage at sublime-worksp/project
       textedit freedom eg after proj and folder rename
   notes py; notes st
     :=  [] {} 0 falsy is/not None   py 3.8
@@ -67,7 +67,7 @@ bug report, pr, feature request, review welcome
     summary
       file content sync w         buffer
         when content externally changed/user revert, if prompt buffer discard confirmed, retains vanilla bookmark(view), but removes gutterregions (view)
-      gutterregions sync w        view            <signet
+      gutterregions sync w        view            <bookmark
       vanilla bookmark  sync w    view
       plugin.py init with         session
       events
@@ -82,7 +82,7 @@ bug report, pr, feature request, review welcome
       insert
         auto adjust regions
         auto adjust vanilla bookmark
-      undo insert to del somehow (dirty, exit st, open, undo)    < DONE on_text_command revive signets after undo cmd unconditionally
+      undo insert to del somehow (dirty, exit st, open, undo)    < DONE on_text_command revive bookmarks after undo cmd unconditionally
         somehow del regions
         somehow del vanilla bookmark
       del                                                  <ignore,  user can decide with togglecmd
@@ -163,7 +163,7 @@ bug report, pr, feature request, review welcome
       magick  -delay 10 -loop 0 -layers Optimize FFF/*.png FFF/OOO.gif
 
       C:\portable\ffmpeg-7.1-essentials_build\bin\ffmpeg.exe -i demo1.mp4 -r 10 C:\persist\desktop\t/frame-%03d.png
-      "C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe"  C:\persist\desktop\t/*.png -delay 1000/10 -loop 0 -layers Optimize C:\persist\desktop\t/demo1.gif
+      "C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe"  C:\persist\desktop\t/*.png -delay 10 -loop 0 -layers Optimize C:\persist\desktop\t/demo1.gif
     or
       ffmpeg -i <input.mp4>  -r 10 -f image2pipe -vcodec ppm - | convert -delay 10 -loop 0 -layers Optimize - <output.gif>
 ```
