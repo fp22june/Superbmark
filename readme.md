@@ -21,39 +21,45 @@ bug report, pr, feature request, review welcome
     list archived bookmark cmd panel
     add text, add signet, close st, open, undo to del added text
     update splitviews when toggle bookmark in either
-  current issues
+  bugsreported
     -
 
   test  commented commits should run, never get forcepsuhed    \Sublime Text 4 x64\Data\Packages
   dev   numbered commits may not run, often get forcepushed
 
-  todo,notes
+  todo priority
     demo vid git checkoutsoft, archive feature
+    allow edit json in st, reloading SESSIONSIGS on_post_save 
+    add man cmd eg. clear archive, clear hot, clear project
     reenable cmd upstream iter signets in sel
-    add man cmd eg. clear archive, clear hot, clear project 
+    search show all matching lines of current in archiveview
     >6mo dist packagecontrol
-    save at least two versions perfile?                              see also "<tricky" 
-      DONE SCOPE0HOT        sync to (kind of) buffer, to handle splitview    https://www.sublimetext.com/docs/api_reference.html#sublime.Buffer
-      DONE SCOPE1FILETIME   sync to actual file (timestamp), to handle extmod and revert
-      not for now           optionally per view
+  todo long
     signets store lcoation options
       programfile/package  /.json                          <remain the same for now
-      sublime-project      window.set_project_data( d)
+      sublime-project      window.set_project_data( d) <notplanned
       per file overridedatafile, next to the actual, use if check exist
         allow diff proj, same signets; allow rename folder; git man the datafile
         cautious public repo data leak
+    save at least two versions perfile?                              see also "<tricky" 
+      DONE SCOPE0HOT        sync to (kind of) buffer, to handle splitview    https://www.sublimetext.com/docs/api_reference.html#sublime.Buffer
+      DONE SCOPE1FILETIME   sync to actual file (timestamp), to handle extmod and revert
+      gitcommitnumber based,    ?detect isunstaged? conflict filetimestamp
+      not for now           optionally per view
+    ?should auto check and restore from archive? current manually only
+  other notplanned; done
+    gui action utests < too complex, notfornow
     plain json 
       notplanned signets storage at sublime-worksp/project
       textedit freedom eg after proj and folder rename
+  notes py; notes st
     View(st class).custommethod= def    per session
     these persist across st close; but cleared at buffer end == last tab/view close (==.sublime-worksp/project internally)
       view.settings().get/set()
       view.custom1=
     doesn't work get/setattr(view, "CUSTOM1", 1)
-    gui action utests < too complex, notfornow
-  don't
-    camel<>underscore   class NocamelyestextsearchCommand(sublime_plugin.TextCommand):  #run_command('nocamelyestextsearch'
-    view.id()     int recycle;     set().add(vid)  seems not working  
+    don't camel<>underscore   class NocamelyestextsearchCommand(sublime_plugin.TextCommand):  #run_command('nocamelyestextsearch'
+    don't view.id()     int recycle;     set().add(vid)  seems not working  
     do not trust AIs
       wrong logic  st event, lifecycle, data lifespan and scope
       wrong api syntax sometimes

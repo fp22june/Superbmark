@@ -156,17 +156,6 @@ def updateViewRegionsFromScopedSig(s,view):
     ]
     view.erase_regions(SIGNET_REGION_NAME)
     view.add_regions(SIGNET_REGION_NAME, regions, str(sublime.load_settings(SETTINGSF).get('scope') or "region.redish"), SIGNET_ICON)
-def addViewRegionsFromScopedSig(s,pf,f,view): # partial dup of updateViewRegionsFromScopedSig(), lesser conditional for performance
-  if (  (p:=getProject(pf)) is not None # {}empty truthy
-    and (obs:=getScopedSigsOfFile(s,p,f)) is not None # empty[] truthy
-  ):
-    regions=[
-        sublime.Region(pt, pt)
-        for o in obs
-        if (ln:=o.get("ln")) is not None
-        for pt in [view.text_point(ln, 0)]  # line start
-    ]
-    view.add_regions(SIGNET_REGION_NAME, regions, str(sublime.load_settings(SETTINGSF).get('scope') or "region.redish"), SIGNET_ICON)
 
 def toggleScopedSig(s,p,f,r,view):
   obs=getScopedSigsOfFile(s,p,f) or newScopedSigsOfFile(s,p,f)
@@ -394,19 +383,15 @@ class SbotToggleSignetCommand(sublime_plugin.TextCommand):
       # and (obs:=getScopedSigsOfFile('DATAHOT',p,f)) is not None # empty[] truthy
       and (rs:=sigrowlistFromViewRegions(view)) is not None # empty[] truthy
       and (caret:=view.sel()[0].b if len(view.sel()) == 1 else None) is not None # 0 truthy
-      and (r_:=view.rowcol(caret)) # invalid input outputs (0,0), is truthy         CAUTION invalid
+      and (rc:=view.rowcol(caret)) # invalid input outputs (0,0), is truthy         CAUTION invalid
     ):
       updateScope0SigFromViewRegions(view)
-      r,_=r_
-      if r is not None:
-        if r in rs: rs.remove(r)
-        else:       rs.append(r)
+      if rc[0] is not None: # 0 truthy
         p=getProject(pf) or newProject(pf)
-        toggleScopedSig('DATAHOT',p,f,r,view)
-        if not view.is_dirty(): toggleScopedSig('DATAFILETIME',p,f,r,view)
+        toggleScopedSig('DATAHOT',p,f,rc[0],view)
+        if not view.is_dirty(): toggleScopedSig('DATAFILETIME',p,f,rc[0],view)
         cleanScope1OfFile(p,f)
-      view.erase_regions(SIGNET_REGION_NAME)
-      addViewRegionsFromScopedSig('DATAHOT',pf,f,view)
+      updateViewRegionsFromScopedSig('DATAHOT',view)
       writeJsonWithSessionsigs()
       for v in [v for v in view.buffer().views() if v!=view]: #splitview
         updateViewRegionsFromScopedSig('DATAHOT',v)
