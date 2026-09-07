@@ -20,8 +20,9 @@ bug report, pr, feature request, review welcome
     unmatched sigs at revert/extmod are archived, hinted at status bar
     list archived bookmark cmd panel
     add text, add signet, close st, open, undo to del added text
+    update splitviews when toggle bookmark in either
   current issues
-    desync splitview.             < TODO toglecmd  if len(buffer().views())>1
+    -
 
   test  commented commits should run, never get forcepsuhed    \Sublime Text 4 x64\Data\Packages
   dev   numbered commits may not run, often get forcepushed
@@ -29,6 +30,7 @@ bug report, pr, feature request, review welcome
   todo,notes
     demo vid git checkoutsoft, archive feature
     reenable cmd upstream iter signets in sel
+    add man cmd eg. clear archive, clear hot, clear project 
     >6mo dist packagecontrol
     save at least two versions perfile?                              see also "<tricky" 
       DONE SCOPE0HOT        sync to (kind of) buffer, to handle splitview    https://www.sublimetext.com/docs/api_reference.html#sublime.Buffer
@@ -48,13 +50,14 @@ bug report, pr, feature request, review welcome
       view.settings().get/set()
       view.custom1=
     doesn't work get/setattr(view, "CUSTOM1", 1)
+    gui action utests < too complex, notfornow
   don't
     camel<>underscore   class NocamelyestextsearchCommand(sublime_plugin.TextCommand):  #run_command('nocamelyestextsearch'
     view.id()     int recycle;     set().add(vid)  seems not working  
     do not trust AIs
       wrong logic  st event, lifecycle, data lifespan and scope
       wrong api syntax sometimes
-  st4 observations, incomplete,         < tested only with  habit at least one project longrunning;  todo utest (notplanned)
+  st4 observations, incomplete,         < tested only with  habit at least one project longrunning
     summary
       file content sync w         buffer
         when content externally changed/user revert, if prompt buffer discard confirmed, retains vanilla bookmark(view), but removes gutterregions (view)

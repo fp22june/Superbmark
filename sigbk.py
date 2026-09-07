@@ -408,6 +408,8 @@ class SbotToggleSignetCommand(sublime_plugin.TextCommand):
       view.erase_regions(SIGNET_REGION_NAME)
       addViewRegionsFromScopedSig('DATAHOT',pf,f,view)
       writeJsonWithSessionsigs()
+      for v in [v for v in view.buffer().views() if v!=view]: #splitview
+        updateViewRegionsFromScopedSig('DATAHOT',v)
 class SbotGotoSignetCommand(sublime_plugin.TextCommand):
     def is_enabled(self):
         return len(sigrowlistFromViewRegions(self.view))>0
