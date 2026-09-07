@@ -9,10 +9,9 @@ bug report, pr, feature request, review welcome
   change/addfeature
     disable function cmd nextbookmark openfileneeded part
     disable function cmd clearall    for now
-    store line snippet when bookmarked
-    list proj bookmarks w/ symbols
-    symlist num of bookmarks under each    https://blog.thul.org/technik/downloads/symlist-clickable-function-list-for-sublime-text/
-    :=  [] {} 0 falsy is/not None
+    store line snippet
+    list proj bookmarks w/ symbols (func/method name)
+    symlist if bookmarks exist under each    https://blog.thul.org/technik/downloads/symlist-clickable-function-list-for-sublime-text/
     edited file, File>Revert
     add signet, close st, file content overwritten externally (repo git ops), open
     don't edit, add signet only, st stay open, file content overwritten externally (repo git ops) (st auto reload)
@@ -53,6 +52,7 @@ bug report, pr, feature request, review welcome
       notplanned signets storage at sublime-worksp/project
       textedit freedom eg after proj and folder rename
   notes py; notes st
+    :=  [] {} 0 falsy is/not None   py 3.8
     View(st class).custommethod= def    per session
     these persist across st close; but cleared at buffer end == last tab/view close (==.sublime-worksp/project internally)
       view.settings().get/set()
