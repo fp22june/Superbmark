@@ -90,7 +90,7 @@ def updateScope0MarksFromViewRegions(view):
     else: # overwrite
       setScopedMarksOfFile('DATAHOT',p,f,[newMark(view,r) for r in rs])
 def newScope1MarksAndTSFromScope0Marks(p,f,view):
-  if (obs:=getScopedMarksOfFile('DATAHOT',p,f)) is not None: #empty[] falsy
+  if (obs:=getScopedMarksOfFile('DATAHOT',p,f)) is not None: #empty[] truthy
     setScopedMarksOfFile('DATAFILETIME',p,f,obs)
     setScope1TSOfFile(p,f,os.path.getmtime(view.file_name()))
     cleanScope1OfFile(p,f)
