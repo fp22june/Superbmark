@@ -617,7 +617,7 @@ class SuperbmarklistarchivedCommand(sublime_plugin.TextCommand): #run_command('s
           +'\n'+str(p['ln']+1).rjust(5)+': ext mod detected, archived at '+str(p['tpa'])                                          +':'+str(p['ca'])
           +'\n'+str(p['ln']+1).rjust(5)+': current same line number      '+time.strftime("%Y-%m-%d %a %H:%M:%S", time.localtime())+':'+view.substr(view.line(view.text_point(p["ln"], 0)))
           +("\n".join([
-           '\n'+str(      i+1).rjust(5)+': current same line content     '+' '*23                                                 +' '+x 
+           '\n'+str(      i+1).rjust(5)+': current same content          '+' '*23                                                 +' '+x 
             for i,x in enumerate(view.substr(sublime.Region(0, view.size())).splitlines()) if x.strip() == str(p['c']).strip() ])
           ) if sublime.load_settings(SETTINGSF).get('search_archived_line_in_current') or False else ''
         ) for p in iobs ])

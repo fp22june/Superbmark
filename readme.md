@@ -11,7 +11,7 @@ bug report, pr, feature request, review welcome
     disable function cmd clearall    for now
     store line snippet
     list proj bookmarks w/ symbols (func/method name)
-    symlist if bookmarks exist under each    https://blog.thul.org/technik/downloads/symlist-clickable-function-list-for-sublime-text/
+    (wip) symlist if bookmarks exist under each    https://blog.thul.org/technik/downloads/symlist-clickable-function-list-for-sublime-text/
     edited file, File>Revert
     add bookmark, close st, file content overwritten externally (repo git ops), open
     don't edit, add bookmark only, st stay open, file content overwritten externally (repo git ops) (st auto reload)
