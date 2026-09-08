@@ -59,6 +59,8 @@ def setScope1TSOfFile(p,f,t):         rs=getFile(p,f) or newFile(p,f); rs[S1NAME
 def cleanScope1OfFile(p,f):           (rs:=getFile(p, f)) and (len(rs.get('DATAFILETIME')or[])==0) and (rs.pop('DATAFILETIME',None), rs.pop(S1NAMETS,None), rs.pop(S1NAMETSLOCAL,None))
 def getArchiveOfFile(p,f):            return rs.get(INVALIDMARK)        if(rs:=getFile(p,f)) is not None else None
 def setArchiveOfFile(p,f,obs):        rs=getFile(p,f) or newFile(p,f); rs[INVALIDMARK]=obs
+def newArchiveOfFile(p,f):            rs=getFile(p,f) or newFile(p,f); rs[INVALIDMARK]=[]; return rs[INVALIDMARK]
+def appendArchiveOfFile(p,f,obs):     a=getArchiveOfFile(p,f) or newArchiveOfFile(p,f); a+=obs
 def newMark(view,r):
   return {
     "tp": time.strftime("%Y-%m-%d %a %H:%M:%S", time.localtime()),
@@ -73,11 +75,11 @@ def timemarkarchive(view,o):
     "ca":view.substr(view.line(view.text_point(o["ln"], 0))),
   }
 
-def updateScope0MarkFromViewRegions(view):
+def updateScope0MarksFromViewRegions(view):
   if (  (f:=view.file_name())
     and (w:=view.window())
     and (pf:=w.project_file_name()) # is project
-    and (p:=getProject(pf)) is not None # {}empty truthy
+    and (p:=getProject(pf)) # {}empty falsy
     and (obs:=getScopedMarksOfFile('DATAHOT',p,f)) is not None # empty[] truthy
     and (rs:=rowsFromViewRegions(view)) is not None # empty[] truthy
   ):
@@ -88,7 +90,7 @@ def updateScope0MarkFromViewRegions(view):
     else: # overwrite
       setScopedMarksOfFile('DATAHOT',p,f,[newMark(view,r) for r in rs])
 def newScope1MarksAndTSFromScope0Marks(p,f,view):
-  if obs:=getScopedMarksOfFile('DATAHOT',p,f):
+  if (obs:=getScopedMarksOfFile('DATAHOT',p,f)) is not None: #empty[] falsy
     setScopedMarksOfFile('DATAFILETIME',p,f,obs)
     setScope1TSOfFile(p,f,os.path.getmtime(view.file_name()))
     cleanScope1OfFile(p,f)
@@ -100,12 +102,12 @@ def newScope1MarksAndTSAndScope0MarksFromViewRegions(p,f,view):
     setScopedMarksOfFile('DATAFILETIME',p,f,obs)
     setScope1TSOfFile(p,f,os.path.getmtime(view.file_name()))
     cleanScope1OfFile(p,f)
-def updateScope0MarkFromScope1Mark(view):
+def updateScope0MarksFromScope1Marks(view):
   if(   (f:=view.file_name()) 
     and (w:=view.window())
     and (pf:=w.project_file_name()) # is project
-    and (p:=getProject(pf)) is not None # {}empty truthy
-    # and os.path.exists(f)
+    and (p:=getProject(pf)) # {}empty falsy
+    and os.path.exists(f)
     and (tf:=os.path.getmtime(view.file_name()))
     and (ts:=getScope1TSOfFile(p,f))
     and (obs:=getScopedMarksOfFile('DATAFILETIME',p,f)) is not None # empty[] truthy
@@ -122,7 +124,7 @@ def updateScope0MarkFromScope1Mark(view):
           vobs.append(o.copy()) # 1to1 ln switch if snippets match
         else:
           iobs.append(o.copy())
-      setArchiveOfFile(p,f,[timemarkarchive(view,o) for o in iobs])
+      appendArchiveOfFile(p,f,[timemarkarchive(view,o) for o in iobs])
       setScopedMarksOfFile('DATAHOT',p,f,vobs)
       setScopedMarksOfFile('DATAFILETIME',p,f,vobs)
       setScope1TSOfFile(p,f,os.path.getmtime(view.file_name()))
@@ -142,7 +144,7 @@ def updateViewRegionsFromScopedMarks(s,view):
     and (f:=view.file_name())
     and (w:=view.window())
     and (pf:=w.project_file_name()) # is project
-    and (p:=getProject(pf)) is not None # {}empty truthy
+    and (p:=getProject(pf)) # {}empty falsy
     and (obs:=getScopedMarksOfFile(s,p,f)) is not None # empty[] truthy
   ):
     regions=[
@@ -252,28 +254,28 @@ class E20260901(sublime_plugin.EventListener):
     if len(views) > 0 and views[0].window() is not None:
       for view in views:
         if not view.is_dirty():
-          updateScope0MarkFromScope1Mark(view)
+          updateScope0MarksFromScope1Marks(view)
         updateViewRegionsFromScopedMarks('DATAHOT',view)
   def on_load_project(self, window): #  Project > Open; ! Not triggered at program start even if project restored  
     for view in window.views():
         if not view.is_dirty():
-          updateScope0MarkFromScope1Mark(view)
+          updateScope0MarksFromScope1Marks(view)
         updateViewRegionsFromScopedMarks('DATAHOT',view)
   def on_load(self, view): # by file>load (after on_activated, which newScope1() mod session w/o write yet); also openpaneltypingpreview
     # updateSessionFromDiskreadJson()  bug if file>load (after on_activated, which newScope1() mod session w/o write yet)
     if not view.is_dirty(): # needed?
-      updateScope0MarkFromScope1Mark(view)
+      updateScope0MarksFromScope1Marks(view)
     updateViewRegionsFromScopedMarks('DATAHOT',view)
   def on_pre_close_project(self, window):
     for view in window.views():
-      updateScope0MarkFromViewRegions(view)
+      updateScope0MarksFromViewRegions(view)
     writeJsonFromSession()
   # def on_pre_close(self, view): pass # children of on_pre_close_project()
   def on_deactivated(self, view): # lost focus
     if((fn:=view.file_name())
       and os.path.exists(fn)
     ):
-      updateScope0MarkFromViewRegions(view)
+      updateScope0MarksFromViewRegions(view)
       writeJsonFromSession()
   def on_activated(self, view):
     if(  view.name()==MATCHFINDRESULTVIEW 
@@ -288,7 +290,7 @@ class E20260901(sublime_plugin.EventListener):
       m=''
       if len(rs)==0: # tab right click > Split View
         if not view.is_dirty():
-          updateScope0MarkFromScope1Mark(view)
+          updateScope0MarksFromScope1Marks(view)
         updateViewRegionsFromScopedMarks('DATAHOT',view)
         rs=rowsFromViewRegions(view)
       if len(rs)>0:
@@ -297,7 +299,7 @@ class E20260901(sublime_plugin.EventListener):
         (f:=view.file_name()) 
       and (w:=view.window())
       and (pf:=w.project_file_name()) # is project
-      and  (p:=getProject(pf)) is not None # {}empty truthy
+      and (p:=getProject(pf)) # {}empty falsy
       and (a:=getArchiveOfFile(p,f))
       and len(a)>0
       ): #[]empty falsy
@@ -308,7 +310,7 @@ class E20260901(sublime_plugin.EventListener):
       and (f:=view.file_name()) 
       and (w:=view.window())
       and (pf:=w.project_file_name()) # is project
-      and (p:=getProject(pf)) is not None # {}empty truthy
+      and (p:=getProject(pf)) # {}empty falsy
       and os.path.exists(f)
     ):
       if not (ts:=getScope1TSOfFile(p,f)):
@@ -326,18 +328,18 @@ class E20260901(sublime_plugin.EventListener):
       and (f:=view.file_name()) 
       and (w:=view.window())
       and (pf:=w.project_file_name()) # is project
-      and (p:=getProject(pf)) is not None # {}empty truthy
+      and (p:=getProject(pf)) # {}empty falsy
       and (_:=getScopedMarksOfFile('DATAHOT',p,f)) is not None # empty[] truthy
       and os.path.exists(f)
     ):
       newScope1MarksAndTSAndScope0MarksFromViewRegions(p,f,view)
-      writeJsonFromSession()
+    writeJsonFromSession()
   def on_reload(self, view):
-      updateScope0MarkFromScope1Mark(view)
+      updateScope0MarksFromScope1Marks(view)
       updateViewRegionsFromScopedMarks('DATAHOT',view)
   # def on_reload_async(self, view): seems always after on_sync
   def on_revert(self, view):
-      updateScope0MarkFromScope1Mark(view)
+      updateScope0MarksFromScope1Marks(view)
       updateViewRegionsFromScopedMarks('DATAHOT',view)
   # def on_revert_async(self, view): seems always after on_sync
   def on_text_command(self, view, command_name, args): # on_undo ugly revive bookmarks after undo cmd unconditionally
@@ -345,7 +347,7 @@ class E20260901(sublime_plugin.EventListener):
       and (f:=view.file_name()) 
       and (w:=view.window())
       and (pf:=w.project_file_name()) # is project
-      and (p:=getProject(pf)) is not None # {}empty truthy
+      and (p:=getProject(pf)) # {}empty falsy
     ):
       writeJsonFromSession()
       if(fobspreundo:=getFile(p,f)): # {}empty falsy
@@ -365,17 +367,15 @@ class SuperbmarktoggleCommand(sublime_plugin.TextCommand):
       and (f:=view.file_name())
       and (w:=view.window())
       and (pf:=w.project_file_name()) # is project
-      # and (p:=getProject(pf)) is not None # {}empty truthy
-      # and (obs:=getScopedMarksOfFile('DATAHOT',p,f)) is not None # empty[] truthy
       and (rs:=rowsFromViewRegions(view)) is not None # empty[] truthy
       and (caret:=view.sel()[0].b if len(view.sel()) == 1 else None) is not None # 0 truthy
       and (rc:=view.rowcol(caret)) # invalid input outputs (0,0), is truthy         CAUTION invalid
     ):
-      updateScope0MarkFromViewRegions(view)
+      updateScope0MarksFromViewRegions(view)
       if rc[0] is not None: # 0 truthy
         p=getProject(pf) or newProject(pf)
         toggleScopedMark('DATAHOT',p,f,rc[0],view)
-        if not view.is_dirty(): toggleScopedMark('DATAFILETIME',p,f,rc[0],view)
+        if not view.is_dirty(): newScope1MarksAndTSFromScope0Marks(p,f,view)
         cleanScope1OfFile(p,f)
       updateViewRegionsFromScopedMarks('DATAHOT',view)
       writeJsonFromSession()
@@ -384,9 +384,6 @@ class SuperbmarktoggleCommand(sublime_plugin.TextCommand):
 class SuperbmarkgotoCommand(sublime_plugin.TextCommand):
     def is_enabled(self):
         return len(rowsFromViewRegions(self.view))>0
-    # def is_visible(self):
-    #     return len(rowsFromViewRegions(self.view))>0
-
     def run(self, __, where):
       dnext=where=='next'
       nav_all_files=sublime.load_settings(SETTINGSF).get('nav_all_files') or False
@@ -395,9 +392,7 @@ class SuperbmarkgotoCommand(sublime_plugin.TextCommand):
         and (fn:=view.file_name())
         and (w:=view.window())
         and (pf:=w.project_file_name()) # is project
-        and (ps:=getProject(pf)) is not None # {}empty truthy
-        # and (obs:=getScopedMarksOfFile('DATAHOT',ps,fn)) is not None # empty[] truthy
-        # and (rs:=rowsFromViewRegions(view)) is not None # empty[] truthy
+        and (ps:=getProject(pf)) # {}empty falsy
         and (caret:=view.sel()[0].b if len(view.sel()) == 1 else None) is not None # 0 truthy
         and (r_:=view.rowcol(caret)) # invalid input outputs (0,0), is truthy         CAUTION invalid
       ):
@@ -486,96 +481,92 @@ class SuperbmarkgenlistCommand(sublime_plugin.TextCommand):
     if((fn:=view.file_name())
       and os.path.exists(fn)
     ):
-      updateScope0MarkFromViewRegions(view)
+      updateScope0MarksFromViewRegions(view)
       writeJsonFromSession()
     if (   (w:=view.window())
       and (pf:=w.project_file_name()) # is project
-      and (ps:=getProject(pf)) is not None # {}empty truthy
     ):
-      s=['']
-      for fn in [ps for _, ps 
-                  in sorted(enumerate(ps)
-                            , key=lambda ef: 0 if ef[1] == view.file_name() else (999-ef[0]))]: #current view at the top, followed by lastest edits 
-        fv=None
-        for ov in w.views():
-          ovf=ov.file_name()
-          if ovf and ovf==fn:
-            #sys.stdout.write(">>>> ok " +str(fn)+'\n')
-            fv=ov
-            # ov.substr(view.line(view.text_point(rr, 0)))
-        obs=getScopedMarksOfFile('DATAHOT',ps,fn)
-        if not len(obs)>0:
-          continue
-        obs=sorted(obs, key=lambda x: x["ln"])
-        if fv:
-          s.append('{0}\n{1}:'.format(os.path.basename(fv.file_name()),fv.file_name()))
-          for o in obs:
-            r=o.get("ln")
-            symbol_name=None
-            point=fv.text_point(r,0)
-            symbols=fv.symbols()
-            closest_region=None
-            for _, (region, name) in enumerate(symbols):
-              if region.a < point:
-                closest_region=region
-              else:
-                break
-            if closest_region:
-              sym_region=sublime.Region(closest_region.a, closest_region.b)
-              symbol_name=fv.substr(fv.line(sym_region))
-            if symbol_name:
-              s.append(str(fv.rowcol(closest_region.a)[0] + 1).rjust(5)+':@'+symbol_name)
+      if ps:=getProject(pf): # {}empty falsy
+        s=['']
+        for fn in [ps for _, ps 
+                    in sorted(enumerate(ps)
+                              , key=lambda ef: 0 if ef[1] == view.file_name() else (999-ef[0]))]: #current view at the top, followed by lastest edits 
+          obs=getScopedMarksOfFile('DATAHOT',ps,fn)
+          if not len(obs)>0:
+            continue
+          obs=sorted(obs, key=lambda x: x["ln"])
+          if fv:=next((ov for ov in w.views() if ov.file_name() == fn), False):
+            s.append('{0}\n{1}:'.format(os.path.basename(fv.file_name()),fv.file_name()))
+            for o in obs:
+              r=o.get("ln")
+              symbol_name=None
+              point=fv.text_point(r,0)
+              symbols=fv.symbols()
+              closest_region=None
+              for _, (region, name) in enumerate(symbols):
+                if region.a < point:
+                  closest_region=region
+                else:
+                  break
+              if closest_region:
+                sym_region=sublime.Region(closest_region.a, closest_region.b)
+                symbol_name=fv.substr(fv.line(sym_region))
+              if symbol_name:
+                s.append(str(fv.rowcol(closest_region.a)[0] + 1).rjust(5)+':@'+symbol_name)
 
-            for a in -2,-1,0,1,2:
-              rr=r+a
-              if 0<=rr and rr<=(fv.rowcol(fv.size())[0] + 1):
-                s.append(
-                  (
-                    "{5}{3}\n{6}{4}\n{0}{1}{2}"
-                      if a==0 and (o.get("tp") or o.get("c")) else
-                    "{0}{1}{2}"
-                  ).format(
-                    str(rr+1).rjust(5)
-                    ,':'if a==0 else ' '
-                    ,fv.substr(fv.line(fv.text_point(rr, 0)))
-                    ,o.get("tp") or ' '*23
-                    ,o.get("c") or ''
-                    ,'    ┌ '
-                    ,'    │ '
+              for a in -2,-1,0,1,2:
+                rr=r+a
+                if 0<=rr and rr<=(fv.rowcol(fv.size())[0] + 1):
+                  s.append(
+                    (
+                      "{5}{3}\n{6}{4}\n{0}{1}{2}"
+                        if a==0 and (o.get("tp") or o.get("c")) else
+                      "{0}{1}{2}"
+                    ).format(
+                      str(rr+1).rjust(5)
+                      ,':'if a==0 else ' '
+                      ,fv.substr(fv.line(fv.text_point(rr, 0)))
+                      ,o.get("tp") or ' '*23
+                      ,o.get("c") or ''
+                      ,'    ┌ '
+                      ,'    │ '
+                    )
                   )
+              s.append(' ')
+          else:
+            s.append('{0}\n{1}:'.format(os.path.basename(fn),fn))
+            fe=os.path.exists(fn)
+            for o in obs:
+              s.append(
+                ( (u"{4}{2}\n{5}{3}\n{0}: "
+                  if (o.get("tp") or o.get("c")) else 
+                  u"{0}: ")
+                  +
+                  (u"⚠ File not opened yet. Either "
+                    "1. Double click filename to open, if this tab was created by 'Find' ; or "
+                    "2. Run '{1}' to open ALL❗files. Then regen this list again."
+                  if fe else
+                  u"❗ File no longer exist."
+                  )
+                ).format(
+                  str(o.get("ln")+1).rjust(5)
+                  ,CMDAUTOOPENALL
+                  ,o.get("tp") or ' '*23
+                  ,o.get("c") or ''
+                  ,'    ┌ '
+                  ,'    │ '
                 )
-            s.append(' ')
-        else:
-          s.append('{0}\n{1}:'.format(os.path.basename(fn),fn))
-          fe=os.path.exists(fn)
-          for o in obs:
-            s.append(
-              ( (u"{4}{2}\n{5}{3}\n{0}: "
-                if (o.get("tp") or o.get("c")) else 
-                u"{0}: ")
-                +
-                (u"⚠ File not opened yet. Either "
-                  "1. Double click filename to open, if this tab was created by 'Find' ; or "
-                  "2. Run '{1}' to open ALL❗files. Then regen this list again."
-                if fe else
-                u"❗ File no longer exist."
-                )
-              ).format(
-                str(o.get("ln")+1).rjust(5)
-                ,CMDAUTOOPENALL
-                ,o.get("tp") or ' '*23
-                ,o.get("c") or ''
-                ,'    ┌ '
-                ,'    │ '
               )
-            )
-        s.append(' ')
-      v=getfindresultsview(view) or newfindresultsview(view)
-      w.set_view_index(v, 1, 0)
-      v.run_command('superbmarkfindresultsappend',{'x':
-        f"\nListing bookmarks in {os.path.split(pf)[1].replace('.sublime-project', '')}\n"+'\n'.join(s)})
+          s.append(' ')
+        v=getfindresultsview(view) or newfindresultsview(view)
+        w.set_view_index(v, 1, 0)
+        v.run_command('superbmarkfindresultsappend',{'x':
+          f"\nListing bookmarks in {os.path.split(pf)[1].replace('.sublime-project', '')}\n"+'\n'.join(s)})
+      else:
+        sublime.status_message(u"🔖 no project bookmarks yet.")
     else:
-      sublime.status_message(u"🔖 no project bookmarks yet.")
+      sublime.status_message(u"🔖 current window is not a project.")
+
 class SuperbmarkrequestsymlistbookmarkrowsCommand(sublime_plugin.TextCommand): #expose symlist
   def run(self, edit, x=[]):
     if len(x)>0:
@@ -605,7 +596,7 @@ class SuperbmarklistarchivedCommand(sublime_plugin.TextCommand): #run_command('s
     if(   (f:=view.file_name())
       and (w:=view.window())
       and (pf:=w.project_file_name()) # is project
-      and (p:=getProject(pf)) is not None # {}empty truthy
+      and (p:=getProject(pf)) # {}empty falsy
       and (iobs:=getArchiveOfFile(p,f)) # empty[] falsy
     ):
       v=getfindresultsview(view) or newfindresultsview(view)

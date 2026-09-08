@@ -29,10 +29,9 @@ bug report, pr, feature request, review welcome
   todo priority
     demo vid git checkoutsoft, archive feature
     allow edit json in st, reloading SESSION on_post_save 
-    add man cmd eg. clear archive, clear hot, clear project
-    reenable cmd upstream iter bookmarks in sel
     search show all matching lines of current in archiveview
     >6mo dist packagecontrol
+    add man cmd eg. clear archive, clear hot, clear project
   todo long
     bookmarks store lcoation options
       programfile/package  /.json                          <remain the same for now
@@ -45,6 +44,7 @@ bug report, pr, feature request, review welcome
       DONE SCOPE1FILETIME   sync to actual file (timestamp), to handle extmod and revert
       gitcommitnumber based,    ?detect isunstaged? conflict filetimestamp
       not for now           optionally per view
+    ?status show bookmark count within selection?  cautious blocking on_selection 
     ?should auto check and restore from archive? current manually only
   other notplanned; done
     gui action utests < too complex, notfornow

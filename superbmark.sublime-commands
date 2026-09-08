@@ -2,9 +2,6 @@
     { "caption": "Superbmark: Toggle bookmark", "command": "superbmarktoggle" },
     { "caption": "Superbmark: Next bookmark", "command": "superbmarkgoto", "args": { "where": "next" } },
     { "caption": "Superbmark: Previous bookmark", "command": "superbmarkgoto", "args": { "where": "prev" } },
-    // { "caption": "Superbmark: Clear ", "command": "superbmarkclear" },
-    // { "caption": "Superbmark: Edit Settings", "command": "edit_settings", "args": { "base_file": "${packages}/Superbmark/superbmark.sublime-settings", "default": "{\n$0\n}\n" } },
-
     { "caption": "Superbmark: List archived bookmarks of current file", "command": "superbmarklistarchived"},
     { "caption": "Superbmark: List all bookmarks in current project", "command": "superbmarkgenlist"},
 ]

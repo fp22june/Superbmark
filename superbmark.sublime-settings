@@ -1,7 +1,7 @@
 {
-    // Scope name for gutter icon color.
+    // Gutter icon color. https://www.sublimetext.com/docs/api_reference.html#sublime.View.add_regions
     "scope": "region.redish",
 
-    // Traverse extent: all project files or just current file.
+    // "Next bookmark" and "Previous bookmark" commands go to neighboring tabs
     "nav_all_files": false,
 }
