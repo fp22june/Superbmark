@@ -20,6 +20,7 @@ bug report, pr, feature request, review welcome
     list archived bookmark cmd panel
     add text, add bookmark, close st, open, undo to del added text
     update splitviews when toggle bookmark in either
+    search show all matching lines of current in archiveview
   bugsreported
     -
 
@@ -28,11 +29,11 @@ bug report, pr, feature request, review welcome
 
   todo priority
     demo vid git checkoutsoft, archive feature
-    allow edit json in st, reloading SESSION on_post_save 
-    search show all matching lines of current in archiveview
+    add man cmd - backup project bookmarks
     >6mo dist packagecontrol
-    add man cmd eg. clear archive, clear hot, clear project
   todo long
+    ?status show bookmark count within selection?  cautious blocking on_selection 
+    add man cmd - clear archive, clear hot, clear project     confirm
     bookmarks store lcoation options
       programfile/package  /.json                          <remain the same for now
       sublime-project      window.set_project_data( d) <notplanned
@@ -44,7 +45,6 @@ bug report, pr, feature request, review welcome
       DONE SCOPE1FILETIME   sync to actual file (timestamp), to handle extmod and revert
       gitcommitnumber based,    ?detect isunstaged? conflict filetimestamp
       not for now           optionally per view
-    ?status show bookmark count within selection?  cautious blocking on_selection 
     ?should auto check and restore from archive? current manually only
   other notplanned; done
     gui action utests < too complex, notfornow

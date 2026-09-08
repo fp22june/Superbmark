@@ -4,4 +4,7 @@
 
     // "Next bookmark" and "Previous bookmark" commands go to neighboring tabs
     "nav_all_files": false,
+
+    // Show lines with same content when "List archived bookmarks of current file"
+    "search_archived_line_in_current": true,
 }

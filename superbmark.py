@@ -31,7 +31,7 @@ SAVEDATAJSON=os.path.join(SETTINGSD, f'{FSNAME}.store.json')
 SAVEJSONVER='1'
 # SAVEDATAJSON=os.path.join(SETTINGSD, f'{FSNAME}.store')
 # SAVEJSONVER=0
-SETTINGSF = os.path.join(f'{FSNAME}.sublime-settings')
+SETTINGSF=f'{FSNAME}.sublime-settings'
 ENUMMARKSCOPE=['DATAHOT','DATAFILETIME'] #Scope0Mark, Scope1Mark
 INVALIDMARK='ARCHIVE'
 S1NAMETS='TIMESTAMP'
@@ -165,7 +165,7 @@ def toggleScopedMark(s,p,f,r,view):
   obs=sorted(obs, key=lambda x: x["ln"])
   setScopedMarksOfFile(s,p,f,obs)
 
-def updateSessionFromDiskreadJson():
+def sessionFromDiskreadJson():
   global SESSION
   SESSION=newSession()
   f=DEBUGSTARTLOADDATAJSON or LOADDATAJSON
@@ -250,7 +250,7 @@ def newfindresultsview(view):
     return v
 class E20260901(sublime_plugin.EventListener):
   def on_init(self, views):
-    updateSessionFromDiskreadJson()
+    sessionFromDiskreadJson()
     if len(views) > 0 and views[0].window() is not None:
       for view in views:
         if not view.is_dirty():
@@ -262,7 +262,7 @@ class E20260901(sublime_plugin.EventListener):
           updateScope0MarksFromScope1Marks(view)
         updateViewRegionsFromScopedMarks('DATAHOT',view)
   def on_load(self, view): # by file>load (after on_activated, which newScope1() mod session w/o write yet); also openpaneltypingpreview
-    # updateSessionFromDiskreadJson()  bug if file>load (after on_activated, which newScope1() mod session w/o write yet)
+    # sessionFromDiskreadJson()  bug if file>load (after on_activated, which newScope1() mod session w/o write yet)
     if not view.is_dirty(): # needed?
       updateScope0MarksFromScope1Marks(view)
     updateViewRegionsFromScopedMarks('DATAHOT',view)
@@ -319,11 +319,20 @@ class E20260901(sublime_plugin.EventListener):
         else:
           if len(rowsFromViewRegions(view))>0:
             newScope1MarksAndTSAndScope0MarksFromViewRegions(p,f,view)
-        # to min diskread (ok to loss S1 if st crash), deferring writeJsonFromSession to on_deactivated or on_pre_close_project, cautious do not on_load:updateSessionFromDiskreadJson() 
+        # to min diskread (ok to loss S1 if st crash), deferring writeJsonFromSession to on_deactivated or on_pre_close_project, cautious do not on_load:sessionFromDiskreadJson() 
       elif ts!=os.path.getmtime(view.file_name()):
         # vanilla prompt
         pass
   def on_post_save(self, view):
+    if(   (f:=view.file_name())
+      and (w:=view.window())
+      and f==LOADDATAJSON
+    ):
+      sessionFromDiskreadJson()
+      for view in w.views():
+        if not view.is_dirty():
+          updateScope0MarksFromScope1Marks(view)
+        updateViewRegionsFromScopedMarks('DATAHOT',view)
     if(   not view.is_dirty()
       and (f:=view.file_name()) 
       and (w:=view.window())
@@ -566,7 +575,6 @@ class SuperbmarkgenlistCommand(sublime_plugin.TextCommand):
         sublime.status_message(u"🔖 no project bookmarks yet.")
     else:
       sublime.status_message(u"🔖 current window is not a project.")
-
 class SuperbmarkrequestsymlistbookmarkrowsCommand(sublime_plugin.TextCommand): #expose symlist
   def run(self, edit, x=[]):
     if len(x)>0:
@@ -602,12 +610,18 @@ class SuperbmarklistarchivedCommand(sublime_plugin.TextCommand): #run_command('s
       v=getfindresultsview(view) or newfindresultsview(view)
       w.set_view_index(v, 1, 0)
       v.run_command('superbmarkfindresultsappend',{'x':
-        f"\nListing archived {len(iobs)} bookmark{'s' if len(iobs)>1 else''} of\n\n{f}:"+"\n".join(
-        [ ('\n'+str(p['ln']+1).rjust(5)+':@'
+        f"\nListing archived {len(iobs)} bookmark{'s' if len(iobs)>1 else''} of\n\n{f}:"
+        +"\n".join([(
+           '\n'+str(p['ln']+1).rjust(5)+':@'
           +'\n'+str(p['ln']+1).rjust(5)+': filestamp when bookmark added '+str(p['tp'])                                           +':'+str(p['c'])
           +'\n'+str(p['ln']+1).rjust(5)+': ext mod detected, archived at '+str(p['tpa'])                                          +':'+str(p['ca'])
-          +'\n'+str(p['ln']+1).rjust(5)+': current                       '+time.strftime("%Y-%m-%d %a %H:%M:%S", time.localtime())+':'+view.substr(view.line(view.text_point(p["ln"], 0)))
-          ) for p in iobs ] )+'\n' })
+          +'\n'+str(p['ln']+1).rjust(5)+': current same line number      '+time.strftime("%Y-%m-%d %a %H:%M:%S", time.localtime())+':'+view.substr(view.line(view.text_point(p["ln"], 0)))
+          +("\n".join([
+           '\n'+str(      i+1).rjust(5)+': current same line content     '+' '*23                                                 +' '+x 
+            for i,x in enumerate(view.substr(sublime.Region(0, view.size())).splitlines()) if x.strip() == str(p['c']).strip() ])
+          ) if sublime.load_settings(SETTINGSF).get('search_archived_line_in_current') or False else ''
+        ) for p in iobs ])
+      })
     else:
       sublime.status_message(u"🔖 nothing in archive.")
 class SuperbmarkfindresultsappendCommand(sublime_plugin.TextCommand): #run_command('superbmarkfindresultsappend', {'x':
