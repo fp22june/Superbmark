@@ -1,0 +1,37 @@
+[
+  {
+    "id": "preferences",
+    "children":
+    [
+      {
+        "id": "package-settings",
+        "children":
+        [
+          {
+            "caption": "Superbmark",
+            "children":
+            [
+
+              {
+                "caption": "Settings",
+                "command": "edit_settings",
+                "args": {
+                  "base_file": "${packages}/Superbmark/superbmark.sublime-settings",
+                  "default": "// Superbmark Settings - User \n{\n$0\n}\n"
+                }
+              },
+              {
+                  "caption": "Key Bindings",
+                  "command": "edit_settings",
+                  "args": {
+                      "base_file": "${packages}/Superbmark/Default (${platform}).sublime-keymap",
+                      "default": "// Key Bindings - User\n[\n$0\n]\n"
+                  }
+              },
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

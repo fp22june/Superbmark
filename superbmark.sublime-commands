@@ -2,6 +2,22 @@
     { "caption": "Superbmark: Toggle bookmark", "command": "superbmarktoggle" },
     { "caption": "Superbmark: Next bookmark", "command": "superbmarkgoto", "args": { "where": "next" } },
     { "caption": "Superbmark: Previous bookmark", "command": "superbmarkgoto", "args": { "where": "prev" } },
-    { "caption": "Superbmark: List archived bookmarks of current file", "command": "superbmarklistarchived"},
-    { "caption": "Superbmark: List all bookmarks in current project", "command": "superbmarkgenlist"},
+    { "caption": "Superbmark: List bookmarks in the current project", "command": "superbmarkgenlist"},
+    { "caption": "Superbmark: List archived bookmarks of the current file", "command": "superbmarklistarchived"},
+    {
+        "caption": "Preferences: Superbmark Settings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/Superbmark/superbmark.sublime-settings",
+            "default": "// Superbmark Settings - User \n{\n\t$0\n}\n"
+        }
+    },
+    {
+        "caption": "Preferences: Superbmark Key Bindings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/Superbmark/Default (${platform}).sublime-keymap",
+            "default": "// Key Bindings - User \n[\n\t$0\n]\n"
+        }
+    },
 ]

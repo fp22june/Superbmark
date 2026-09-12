@@ -165,7 +165,7 @@ def toggleScopedMark(s,p,f,r,view):
   obs=sorted(obs, key=lambda x: x["ln"])
   setScopedMarksOfFile(s,p,f,obs)
 
-def sessionFromDiskreadJson():
+def newSessionFromDiskreadJson():
   global SESSION
   SESSION=newSession()
   f=DEBUGSTARTLOADDATAJSON or LOADDATAJSON
@@ -248,9 +248,10 @@ def newfindresultsview(view):
     #   "cells" : [[0, 0, 1, 1], [1, 0, 2, 1]]
     # })
     return v
+
 class E20260901(sublime_plugin.EventListener):
   def on_init(self, views):
-    sessionFromDiskreadJson()
+    newSessionFromDiskreadJson()
     if len(views) > 0 and views[0].window() is not None:
       for view in views:
         if not view.is_dirty():
@@ -262,7 +263,7 @@ class E20260901(sublime_plugin.EventListener):
           updateScope0MarksFromScope1Marks(view)
         updateViewRegionsFromScopedMarks('DATAHOT',view)
   def on_load(self, view): # by file>load (after on_activated, which newScope1() mod session w/o write yet); also openpaneltypingpreview
-    # sessionFromDiskreadJson()  bug if file>load (after on_activated, which newScope1() mod session w/o write yet)
+    # newSessionFromDiskreadJson()  bug if file>load (after on_activated, which newScope1() mod session w/o write yet)
     if not view.is_dirty(): # needed?
       updateScope0MarksFromScope1Marks(view)
     updateViewRegionsFromScopedMarks('DATAHOT',view)
@@ -319,7 +320,7 @@ class E20260901(sublime_plugin.EventListener):
         else:
           if len(rowsFromViewRegions(view))>0:
             newScope1MarksAndTSAndScope0MarksFromViewRegions(p,f,view)
-        # to min diskread (ok to loss S1 if st crash), deferring writeJsonFromSession to on_deactivated or on_pre_close_project, cautious do not on_load:sessionFromDiskreadJson() 
+        # to min diskread (ok to loss S1 if st crash), deferring writeJsonFromSession to on_deactivated or on_pre_close_project, cautious do not on_load:newSessionFromDiskreadJson() 
       elif ts!=os.path.getmtime(view.file_name()):
         # vanilla prompt
         pass
@@ -328,7 +329,7 @@ class E20260901(sublime_plugin.EventListener):
       and (w:=view.window())
       and f==LOADDATAJSON
     ):
-      sessionFromDiskreadJson()
+      newSessionFromDiskreadJson()
       for view in w.views():
         if not view.is_dirty():
           updateScope0MarksFromScope1Marks(view)
@@ -370,7 +371,7 @@ class E20260901(sublime_plugin.EventListener):
 class SuperbmarktoggleCommand(sublime_plugin.TextCommand):
   def is_visible(self):
     return self.view.is_scratch() is False and self.view.file_name() is not None
-  def run(self, __):
+  def run(self, edit):
     view=self.view
     if ( (not view.is_scratch())
       and (f:=view.file_name())
@@ -393,7 +394,7 @@ class SuperbmarktoggleCommand(sublime_plugin.TextCommand):
 class SuperbmarkgotoCommand(sublime_plugin.TextCommand):
     def is_enabled(self):
         return len(rowsFromViewRegions(self.view))>0
-    def run(self, __, where):
+    def run(self, edit, where):
       dnext=where=='next'
       nav_all_files=sublime.load_settings(SETTINGSF).get('nav_all_files') or False
       view=self.view
@@ -485,7 +486,7 @@ class SuperbmarkgotoCommand(sublime_plugin.TextCommand):
                 else:
                     view_index += incr
 class SuperbmarkgenlistCommand(sublime_plugin.TextCommand):
-  def run(self, __):
+  def run(self, edit):
     view=self.view
     if((fn:=view.file_name())
       and os.path.exists(fn)
@@ -552,7 +553,7 @@ class SuperbmarkgenlistCommand(sublime_plugin.TextCommand):
                   u"{0}: ")
                   +
                   (u"⚠ File not opened yet. Either "
-                    "1. Double click filename to open, if this tab was created by 'Find' ; or "
+                    '1. Double click filename to open, if this tab was created by "Find" ; or '
                     "2. Run '{1}' to open ALL❗files. Then regen this list again."
                   if fe else
                   u"❗ File no longer exist."
@@ -571,6 +572,7 @@ class SuperbmarkgenlistCommand(sublime_plugin.TextCommand):
         w.set_view_index(v, 1, 0)
         v.run_command('superbmarkfindresultsappend',{'x':
           f"\nListing bookmarks in {os.path.split(pf)[1].replace('.sublime-project', '')}\n"+'\n'.join(s)})
+        sublime.status_message(u'🔖 bookmarks listed under "{0}"'.format(LISTVIEWNAME))
       else:
         sublime.status_message(u"🔖 no project bookmarks yet.")
     else:
@@ -579,27 +581,23 @@ class SuperbmarkrequestsymlistbookmarkrowsCommand(sublime_plugin.TextCommand): #
   def run(self, edit, x=[]):
     if len(x)>0:
       v=rowsFromViewRegions(self.view)
-      # sys.stdout.write('x '+str(x)+'\n')
-      # sys.stdout.write('v '+str(v)+'\n')
       if v:
         indices = []
         for val in v:
             idx = bisect.bisect_right(x, val) - 1
             indices.append(idx)
         r=list(dict.fromkeys(indices))
-        #sys.stdout.write('r '+str(r)+'\n')
         if len(r)>0: self.view.run_command('symlistrequestlisthighlightcallback', {'x': r})
 class SuperbmarkhighlightsymlistrowsCommand(sublime_plugin.TextCommand): #expose symlist
   def run(self, edit, x=[]):
     if len(x)>0:
-      # sys.stdout.write('x '+str(x)+'\n')
       regions=[]
       for r in x:
           pt = self.view.text_point(r, 0)  # line start
           regions.append(sublime.Region(pt, pt))
       self.view.add_regions('symlistsuperbmarkexist', regions, 'region.redish', 'Packages/Theme - Default/common/label.png')
 class SuperbmarklistarchivedCommand(sublime_plugin.TextCommand): #run_command('superbmarklistarchived'
-  def run(self, __):
+  def run(self, edit):
     view=self.view
     if(   (f:=view.file_name())
       and (w:=view.window())
@@ -609,19 +607,32 @@ class SuperbmarklistarchivedCommand(sublime_plugin.TextCommand): #run_command('s
     ):
       v=getfindresultsview(view) or newfindresultsview(view)
       w.set_view_index(v, 1, 0)
+      ls=view.substr(sublime.Region(0, view.size())).splitlines()
       v.run_command('superbmarkfindresultsappend',{'x':
-        f"\nListing archived {len(iobs)} bookmark{'s' if len(iobs)>1 else''} of\n\n{f}:"
+        f"\n\nListing archived {len(iobs)} bookmark{'s' if len(iobs)>1 else''} of\n\n{f}:"
         +"\n".join([(
-           '\n'+str(p['ln']+1).rjust(5)+':@'
-          +'\n'+str(p['ln']+1).rjust(5)+': filestamp when bookmark added '+str(p['tp'])                                           +':'+str(p['c'])
-          +'\n'+str(p['ln']+1).rjust(5)+': ext mod detected, archived at '+str(p['tpa'])                                          +':'+str(p['ca'])
-          +'\n'+str(p['ln']+1).rjust(5)+': current same line number      '+time.strftime("%Y-%m-%d %a %H:%M:%S", time.localtime())+':'+view.substr(view.line(view.text_point(p["ln"], 0)))
-          +("\n".join([
-           '\n'+str(      i+1).rjust(5)+': current same content          '+' '*23                                                 +' '+x 
-            for i,x in enumerate(view.substr(sublime.Region(0, view.size())).splitlines()) if x.strip() == str(p['c']).strip() ])
-          ) if sublime.load_settings(SETTINGSF).get('search_archived_line_in_current') or False else ''
+                 '\n'+str(p['ln']+1).rjust(5)+':@'
+          +      '\n'+str(p['ln']+1).rjust(5)+': file timestamp when bookmarked          '+str(p['tp'])                                           +':'+str(p['c'])
+          +(
+                ('\n'+str(p['ln']+1).rjust(5)+': ext mod, line content mismatch detected '+str(p['tpa'])                                          +':'+str(p['ca']))
+                 if p["ln"]+1<=len(ls) else 
+                ('\n'+str(p['ln']+1).rjust(5)+': ext mod, line content mismatch detected '+str(p['tpa']))
+           )
+          +(
+                ('\n'+str(p['ln']+1).rjust(5)+": current content at the same line number "+time.strftime("%Y-%m-%d %a %H:%M:%S", time.localtime())+':'+view.substr(view.line(view.text_point(p["ln"], 0))))
+                if p["ln"]+1<=len(ls) else 
+                ('\n'+           ' '.rjust(5)+'  current file ends prior to the bookmark line number')
+           )
+          +(  ("\n".join(
+                ['\n'+str(      i+1).rjust(5)+": <= found a line in current with the exact same content" for i,x in enumerate(ls) if x == str(p['c'])] # strip()?
+                or
+                ['\n'+           ' '.rjust(5)+'  current file does not have any line with the exact same content']
+                )
+              ) if sublime.load_settings(SETTINGSF).get('search_archived_line_in_current') or False else ''
+           )
         ) for p in iobs ])
       })
+      sublime.status_message(u'🔖 {0} bookmark{1} listed under "{2}"'.format(len(iobs),len(iobs)>1,LISTVIEWNAME))
     else:
       sublime.status_message(u"🔖 nothing in archive.")
 class SuperbmarkfindresultsappendCommand(sublime_plugin.TextCommand): #run_command('superbmarkfindresultsappend', {'x':

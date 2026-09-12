@@ -1,0 +1,7 @@
+[
+{"keys":["f1"], "command":"superbmarktoggle" },                                   // toggle bookmark
+{"keys":["f2"], "command":"superbmarkgoto", "args": { "where": "next" } },        // go to the next bookmark, optionally go to the next opened file
+{"keys":["shift+f2"], "command":"superbmarkgoto", "args": { "where": "prev" } },
+{"keys":["ctrl+f2"], "command":"superbmarkgenlist"},                              // list all bookmarks in the project
+{"keys":["ctrl+shift+f2"], "command":"superbmarklistarchived"},                   // list archived bookmarks of the current file
+]

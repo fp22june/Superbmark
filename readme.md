@@ -1,9 +1,37 @@
-demo video
+Sublime Text 4 line bookmarking across sessions and external content modifications such as git checkout. Demo videos
 
-![loading embedded gif(10M)](demo1.gif)
+![loading demo1.gif (5M)](demo1.gif)
 
-![download demo1.webm(2M)](https://raw.githubusercontent.com/fp22june/sublimetextbookmark/main/demo1.webm)
+![download demo1.webm (0.5M)](https://raw.githubusercontent.com/fp22june/superbmark/main/demo1.webm)
+
+![loading demo2.gif (2M)](demo2.gif)
+
+![download demo2.webm (0.5M)](https://raw.githubusercontent.com/fp22june/superbmark/main/demo2.webm)
+
+Run commands with **Tools > Command Palette...** (Default: Ctrl + Shift + P ),
+
+* Superbmark: Toggle bookmark
+* Superbmark: Next bookmark
+* Superbmark: Previous bookmark
+* Superbmark: List bookmarks in the current project
+* Superbmark: List archived bookmarks of the current file
+
+Keyboard shortcuts **Preferences > Package settings > Superbmark > Key bindings**
+```json
+{"keys":["f1"], "command":"superbmarktoggle" },                                   // toggle bookmark
+{"keys":["f2"], "command":"superbmarkgoto", "args": { "where": "next" } },        // go to the next bookmark, optionally go to the next opened file
+{"keys":["shift+f2"], "command":"superbmarkgoto", "args": { "where": "prev" } },
+{"keys":["ctrl+f2"], "command":"superbmarkgenlist"},                              // list all bookmarks in the project
+{"keys":["ctrl+shift+f2"], "command":"superbmarklistarchived"},                   // list archived bookmarks of the current file
 ```
+
+Options under **Preferences > Package settings > Superbmark > Settings**.
+
+All bookmarks are stored at `\Packages\User\superbmark.store.json`
+
+```
+dev notes
+
 bug report, pr, feature request, review welcome
 2026Sep
   change/addfeature
@@ -20,7 +48,7 @@ bug report, pr, feature request, review welcome
     list archived bookmark cmd panel
     add text, add bookmark, close st, open, undo to del added text
     update splitviews when toggle bookmark in either
-    search show all matching lines of current in archiveview
+    search and show matching lines of current when listing archived bookmarks
   bugsreported
     -
 
@@ -28,7 +56,6 @@ bug report, pr, feature request, review welcome
   dev   numbered commits may not run, often get forcepushed
 
   todo priority
-    demo vid git checkoutsoft, archive feature
     add man cmd - backup project bookmarks
     >6mo dist packagecontrol
   todo long
@@ -161,9 +188,14 @@ bug report, pr, feature request, review welcome
     https://usage.imagemagick.org/anim_basics/
       ffmpeg -i III.mp4 -r 10 FFF/frame-%03d.png
       magick  -delay 10 -loop 0 -layers Optimize FFF/*.png FFF/OOO.gif
-
-      C:\portable\ffmpeg-7.1-essentials_build\bin\ffmpeg.exe -i demo1.mp4 -r 10 C:\persist\desktop\t/frame-%03d.png
-      "C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe"  C:\persist\desktop\t/*.png -delay 10 -loop 0 -layers Optimize C:\persist\desktop\t/demo1.gif
     or
       ffmpeg -i <input.mp4>  -r 10 -f image2pipe -vcodec ppm - | convert -delay 10 -loop 0 -layers Optimize - <output.gif>
+
+      ffmpeg -i input.mp4 -vf "fps=15,scale=480:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse" -loop 0 output.gif
+      C:\portable\ffmpeg-7.1-essentials_build\bin\ffmpeg.exe -i demo1.mp4 -r 10 C:\persist\desktop\t/frame-%03d.png
+      "C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe"  C:\persist\desktop\t/*.png -delay 10 -loop 0 -layers Optimize C:\persist\desktop\t/demo1.gif
+      ffmpeg -framerate 10 -i C:\persist\desktop\demo1\*.png demo1.gif
+      ffmpeg -framerate 10 -i image%03d.png -filter_complex "split[v1][v2];[v1]palettegen[palette];[v2][palette]paletteuse" demo1.gif            hqpalette
+      ffmpeg -i demo2.gif -c:v libvpx-vp9 -crf 40 -b:v 0 -pix_fmt yuv420p demo2.webm
+      ffmpeg -i demo2.gif -filter_complex "fps=12,split[a][b];[a]palettegen=max_colors=64[p];[b][p]paletteuse=dither=none" demo2c.gif
 ```
