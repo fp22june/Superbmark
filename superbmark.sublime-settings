@@ -5,6 +5,9 @@
     // "Next bookmark" and "Previous bookmark" commands go to neighboring tabs
     "nav_all_files": false,
 
+    // When a bookmark becomes invalid because of File>Revert or external modification, search x rows before and x rows after for the exact same content, **in addition to** any detected row count difference. Update record if matches instead of archiving it
+    "auto_match_invalid_row_range": 5,
+
     // Show lines with same content when "List archived bookmarks of current file"
     "search_archived_line_in_current": true,
 }

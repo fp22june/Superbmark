@@ -49,6 +49,7 @@ bug report, pr, feature request, review welcome
     add text, add bookmark, close st, open, undo to del added text
     update splitviews when toggle bookmark in either
     search and show matching lines of current when listing archived bookmarks
+    try auto update line number after revert or extmod
   bugsreported
     -
 
@@ -56,11 +57,13 @@ bug report, pr, feature request, review welcome
   dev   numbered commits may not run, often get forcepushed
 
   todo priority
-    add man cmd - backup project bookmarks
+    add man cmd - clear selected archive               show_quick_panel
+    add man cmd - clear all archive of file               show_input_panel type confirm
+    add man cmd - backup project bookmarks   show_quick_panel
     >6mo dist packagecontrol
   todo long
     ?status show bookmark count within selection?  cautious blocking on_selection 
-    add man cmd - clear archive, clear hot, clear project     confirm
+    add man cmd - clear hot, clear project    show_input_panel type confirm
     bookmarks store lcoation options
       programfile/package  /.json                          <remain the same for now
       sublime-project      window.set_project_data( d) <notplanned

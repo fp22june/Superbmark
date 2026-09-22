@@ -36,6 +36,9 @@ ENUMMARKSCOPE=['DATAHOT','DATAFILETIME'] #Scope0Mark, Scope1Mark
 INVALIDMARK='ARCHIVE'
 S1NAMETS='TIMESTAMP'
 S1NAMETSLOCAL='TIMESTAMPLOCAL'
+S1NAMEROWCOUNT='ROWCOUNT'
+BLANKSETTINGSDEFAULTCOLOR="region.redish"
+BLANKSETTINGSDEFAULTMATCHRANGE=5
 
 def rowsFromViewRegions(view):
     lns = []
@@ -56,7 +59,9 @@ def getScopedMarksOfFile(s,p,f):      return rs.get(s)                 if(rs:=ge
 def setScopedMarksOfFile(s,p,f,obs):  rs=getFile(p,f) or newFile(p,f); rs[s]=obs
 def getScope1TSOfFile(p,f):           return rs.get(S1NAMETS)          if(rs:=getFile(p,f)) is not None else None
 def setScope1TSOfFile(p,f,t):         rs=getFile(p,f) or newFile(p,f); rs[S1NAMETS]=t; rs[S1NAMETSLOCAL]=datetime.datetime.fromtimestamp(t).strftime('%Y-%m-%d %a %H:%M:%S')
-def cleanScope1OfFile(p,f):           (rs:=getFile(p, f)) and (len(rs.get('DATAFILETIME')or[])==0) and (rs.pop('DATAFILETIME',None), rs.pop(S1NAMETS,None), rs.pop(S1NAMETSLOCAL,None))
+def getScope1RCOfFile(p,f):           return rs.get(S1NAMEROWCOUNT)          if(rs:=getFile(p,f)) is not None else None
+def setScope1RCOfFile(p,f,x):         rs=getFile(p,f) or newFile(p,f); rs[S1NAMEROWCOUNT]=x
+def cleanScope1OfFile(p,f):           (rs:=getFile(p, f)) and (len(rs.get('DATAFILETIME')or[])==0) and (rs.pop('DATAFILETIME',None), rs.pop(S1NAMETS,None), rs.pop(S1NAMETSLOCAL,None), rs.pop(S1NAMEROWCOUNT,None))
 def getArchiveOfFile(p,f):            return rs.get(INVALIDMARK)        if(rs:=getFile(p,f)) is not None else None
 def setArchiveOfFile(p,f,obs):        rs=getFile(p,f) or newFile(p,f); rs[INVALIDMARK]=obs
 def newArchiveOfFile(p,f):            rs=getFile(p,f) or newFile(p,f); rs[INVALIDMARK]=[]; return rs[INVALIDMARK]
@@ -93,6 +98,7 @@ def newScope1MarksAndTSFromScope0Marks(p,f,view):
   if (obs:=getScopedMarksOfFile('DATAHOT',p,f)) is not None: #empty[] truthy
     setScopedMarksOfFile('DATAFILETIME',p,f,obs)
     setScope1TSOfFile(p,f,os.path.getmtime(view.file_name()))
+    setScope1RCOfFile(p,f,view.rowcol(view.size())[0]+1)
     cleanScope1OfFile(p,f)
 def newScope1MarksAndTSAndScope0MarksFromViewRegions(p,f,view):
   if(   (rs:=rowsFromViewRegions(view)) is not None # empty[] truthy
@@ -101,6 +107,7 @@ def newScope1MarksAndTSAndScope0MarksFromViewRegions(p,f,view):
     setScopedMarksOfFile('DATAHOT',p,f,obs)
     setScopedMarksOfFile('DATAFILETIME',p,f,obs)
     setScope1TSOfFile(p,f,os.path.getmtime(view.file_name()))
+    setScope1RCOfFile(p,f,view.rowcol(view.size())[0]+1)
     cleanScope1OfFile(p,f)
 def updateScope0MarksFromScope1Marks(view):
   if(   (f:=view.file_name()) 
@@ -119,20 +126,46 @@ def updateScope0MarksFromScope1Marks(view):
       #       if o["c"]==view.substr(view.line(view.text_point(o["ln"], 0))) ]
       vobs=[]
       iobs=[]
+      rc=view.rowcol(view.size())[0]+1
+      s1rc=getScope1RCOfFile(p,f)
+      rcdiff=abs(rc-int(s1rc)) if s1rc is not None else 0
+      rsrange=sublime.load_settings(SETTINGSF).get('auto_match_invalid_row_range')
+      rs=rcdiff+(int(rsrange) if rsrange is not None else BLANKSETTINGSDEFAULTMATCHRANGE) # accept rsrange 0
+      adj=0
       for o in obs:
         if o["c"]==view.substr(view.line(view.text_point(o["ln"], 0))):
           vobs.append(o.copy()) # 1to1 ln switch if snippets match
+        elif (
+          # only one match within range
+          sum(
+            o["c"]==view.substr(view.line(view.text_point(x, 0)))
+            for x in range(max(0, o["ln"]-(rs)), min(rc, o["ln"]+rs+1))
+          )==1
+        ):
+          i=next((
+              i
+              for i in range(-(rs), rs+1)
+              if 0<= o["ln"]+i <rc
+              and o["c"]==view.substr(view.line(view.text_point(o["ln"]+i, 0)))
+            ),0)
+          vobs.append({**o,"ln":o["ln"]+i})  # 1to1 ln switch if snippets match
+          adj+=1
         else:
           iobs.append(o.copy())
       appendArchiveOfFile(p,f,[timemarkarchive(view,o) for o in iobs])
       setScopedMarksOfFile('DATAHOT',p,f,vobs)
       setScopedMarksOfFile('DATAFILETIME',p,f,vobs)
       setScope1TSOfFile(p,f,os.path.getmtime(view.file_name()))
+      setScope1RCOfFile(p,f,view.rowcol(view.size())[0]+1)
       cleanScope1OfFile(p,f)
+      m=u"🔖 Reverted / File modification detected."
       if len(iobs)==0:
-        sublime.status_message(u"🔖 Reverted / File modification detected, all bookmarks restored and adjusted to new line numbers.")
+        m+=" All bookmarks restored."
       else:
-        sublime.status_message(u"🔖 Reverted / File modification detected, {0} / {1} invalid bookmark{2} archived.".format(len(iobs),len(obs),'s' if len(iobs)>1 else ''))
+        m+=" {0} / {1} invalid bookmark{2} archived.".format(len(iobs),len(obs),'s' if len(iobs)>1 else '')
+      if adj>0:
+        m+=" {0} bookmark{1} adjusted to new line number.".format(str(adj),'s' if adj>1 else '')
+      sublime.status_message(m)
       # if 0<len(iobs):
       #   debugprint('{0} archived'.format(len(iobs)))
       #   [debugprint(y) for y in
@@ -154,7 +187,7 @@ def updateViewRegionsFromScopedMarks(s,view):
         for pt in [view.text_point(ln, 0)]  # line start
     ]
     view.erase_regions(REGIONNAME)
-    view.add_regions(REGIONNAME, regions, str(sublime.load_settings(SETTINGSF).get('scope') or "region.redish"), ICON)
+    view.add_regions(REGIONNAME, regions, str(sublime.load_settings(SETTINGSF).get('scope') or BLANKSETTINGSDEFAULTCOLOR), ICON)
 
 def toggleScopedMark(s,p,f,r,view):
   obs=getScopedMarksOfFile(s,p,f) or newScopedMarksOfFile(s,p,f)
@@ -198,7 +231,7 @@ def newSessionFromDiskreadJson():
                         if "ca"  in o:  ao["ca"]=o.get("ca")
                         t.append(ao)
                     SESSION[pf][fn][k]=t
-                  elif k in [S1NAMETS, S1NAMETSLOCAL]:
+                  elif k in [S1NAMETS, S1NAMETSLOCAL, S1NAMEROWCOUNT]:
                     SESSION[pf][fn][k]=v
               else: # cepthomas/SbotSignet 1567db9
                 SESSION[pf][fn]['DATAHOT'] = [{"ln": o} for o in ds]
@@ -526,7 +559,7 @@ class SuperbmarkgenlistCommand(sublime_plugin.TextCommand):
 
               for a in -2,-1,0,1,2:
                 rr=r+a
-                if 0<=rr and rr<=(fv.rowcol(fv.size())[0] + 1):
+                if 0<=rr and rr<(fv.rowcol(fv.size())[0] + 1):
                   s.append(
                     (
                       "{5}{3}\n{6}{4}\n{0}{1}{2}"
