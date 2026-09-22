@@ -645,14 +645,14 @@ class SuperbmarklistarchivedCommand(sublime_plugin.TextCommand): #run_command('s
         f"\n\nListing archived {len(iobs)} bookmark{'s' if len(iobs)>1 else''} of\n\n{f}:"
         +"\n".join([(
                  '\n'+str(p['ln']+1).rjust(5)+':@'
-          +      '\n'+str(p['ln']+1).rjust(5)+': file timestamp when bookmarked          '+str(p['tp'])                                           +':'+str(p['c'])
+          +      '\n'+str(p['ln']+1).rjust(5)+': file timestamp when bookmarked          '+str(p['tp'])                                           +' :'+str(p['c'])
           +(
-                ('\n'+str(p['ln']+1).rjust(5)+': ext mod, line content mismatch detected '+str(p['tpa'])                                          +':'+str(p['ca']))
+                ('\n'+str(p['ln']+1).rjust(5)+': ext mod, line content mismatch detected '+str(p['tpa'])                                          +' :'+str(p['ca']))
                  if p["ln"]+1<=len(ls) else 
                 ('\n'+str(p['ln']+1).rjust(5)+': ext mod, line content mismatch detected '+str(p['tpa']))
            )
           +(
-                ('\n'+str(p['ln']+1).rjust(5)+": current content at the same line number "+time.strftime("%Y-%m-%d %a %H:%M:%S", time.localtime())+':'+view.substr(view.line(view.text_point(p["ln"], 0))))
+                ('\n'+str(p['ln']+1).rjust(5)+": current content at the same line number "+time.strftime("%Y-%m-%d %a %H:%M:%S", time.localtime())+' :'+view.substr(view.line(view.text_point(p["ln"], 0))))
                 if p["ln"]+1<=len(ls) else 
                 ('\n'+           ' '.rjust(5)+'  current file ends prior to the bookmark line number')
            )
