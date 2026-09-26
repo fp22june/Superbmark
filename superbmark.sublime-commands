@@ -4,6 +4,7 @@
     { "caption": "Superbmark: Previous bookmark", "command": "superbmarkgoto", "args": { "where": "prev" } },
     { "caption": "Superbmark: List bookmarks in the current project", "command": "superbmarkgenlist"},
     { "caption": "Superbmark: List archived bookmarks of the current file", "command": "superbmarklistarchived"},
+    { "caption": "Superbmark: Open the bookmark data storage json file", "command": "superbmarkopenjson"},
     {
         "caption": "Preferences: Superbmark Settings",
         "command": "edit_settings",

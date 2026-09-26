@@ -9,6 +9,10 @@ import json
 import bisect
 import time
 import copy
+import shutil
+import heapq
+import re
+import Default.send2trash
 try:
   from .sublimeapistudy import debugprint
 except ImportError:
@@ -39,6 +43,7 @@ S1NAMETSLOCAL='TIMESTAMPLOCAL'
 S1NAMEROWCOUNT='ROWCOUNT'
 BLANKSETTINGSDEFAULTCOLOR="region.redish"
 BLANKSETTINGSDEFAULTMATCHRANGE=5
+BLANKSETTINGSDEFAULTKEEPBACKUP=14
 
 def rowsFromViewRegions(view):
     lns = []
@@ -133,23 +138,24 @@ def updateScope0MarksFromScope1Marks(view):
       rs=rcdiff+(int(rsrange) if rsrange is not None else BLANKSETTINGSDEFAULTMATCHRANGE) # accept rsrange 0
       adj=0
       for o in obs:
-        if o["c"]==view.substr(view.line(view.text_point(o["ln"], 0))):
-          vobs.append(o.copy()) # 1to1 ln switch if snippets match
-        elif (
-          # only one match within range
-          sum(
-            o["c"]==view.substr(view.line(view.text_point(x, 0)))
-            for x in range(max(0, o["ln"]-(rs)), min(rc, o["ln"]+rs+1))
-          )==1
-        ):
-          i=next((
-              i
-              for i in range(-(rs), rs+1)
-              if 0<= o["ln"]+i <rc
-              and o["c"]==view.substr(view.line(view.text_point(o["ln"]+i, 0)))
-            ),0)
-          vobs.append({**o,"ln":o["ln"]+i})  # 1to1 ln switch if snippets match
-          adj+=1
+        if o.get('c'):
+          if o["c"]==view.substr(view.line(view.text_point(o["ln"], 0))):
+            vobs.append(o.copy()) # 1to1 ln switch if snippets match
+          elif (
+            # only one match within range
+            sum(
+              o["c"]==view.substr(view.line(view.text_point(x, 0)))
+              for x in range(max(0, o["ln"]-(rs)), min(rc, o["ln"]+rs+1))
+            )==1
+          ):
+            i=next((
+                i
+                for i in range(-(rs), rs+1)
+                if 0<= o["ln"]+i <rc
+                and o["c"]==view.substr(view.line(view.text_point(o["ln"]+i, 0)))
+              ),0)
+            vobs.append({**o,"ln":o["ln"]+i})  # 1to1 ln switch if snippets match
+            adj+=1
         else:
           iobs.append(o.copy())
       appendArchiveOfFile(p,f,[timemarkarchive(view,o) for o in iobs])
@@ -240,9 +246,9 @@ def newSessionFromDiskreadJson():
       raise
 def writeJsonFromSession():
   timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-  temp_file = f"{SAVEDATAJSON}.{timestamp}.tmp"
+  f = f"{SAVEDATAJSON}.{timestamp}.tmp"
   try:
-      with open(temp_file, 'w') as fp:
+      with open(f, 'w') as fp:
         if WORKJSONVER=='1':
           if SAVEJSONVER=='1':
             json.dump(SESSION, fp, indent=2)
@@ -252,13 +258,31 @@ def writeJsonFromSession():
                     for fn, ds in fs.items()}
                 for pf, fs in SESSION.items() if pf != 'ver'
               }, fp, indent=2)
-      os.replace(temp_file, SAVEDATAJSON)
+  except Exception as e:
+      debugprint(f'Failed to generate temporary {f}: {e}')
+      raise
+  y4m2d2=datetime.datetime.now().strftime("%Y%m%d")
+  f2=os.path.join(SETTINGSD, f"{FSNAME}.store.{y4m2d2}.json")
+  if not os.path.exists(f2):
+    try:
+      shutil.copy(f, f2)
+    except Exception as e:
+      debugprint(f'Failed to backup {f2}: {e}')
+  try:
+      os.replace(f, SAVEDATAJSON)
   except Exception as e:
       debugprint(f'Failed to write {f}: {e}')
-      # if os.path.exists(temp_file):
-      #   os.remove(temp_file)
       raise
-
+  if (fs:=[x for x in os.listdir(SETTINGSD) if re.match(rf"^{FSNAME}\.store\.\d+\.json$",x)]):
+    k=sublime.load_settings(SETTINGSF).get('keep_backup_copies')
+    k=BLANKSETTINGSDEFAULTKEEPBACKUP if k is None else k
+    def ymdsum(x):
+      if (ymd:=re.match(r"\.(\d{4})(\d{2})(\d{2})\.json$",x)):
+        return int(ymd[0])*10000 + int(ymd[1])*100 + int(ymd[2])
+      else:
+        return 0
+    [Default.send2trash.send2trash(os.path.join(SETTINGSD,x)) for x in fs 
+    if x not in set(heapq.nlargest(k, fs, key=lambda x:ymdsum(x)))]
 def getfindresultsview(view):
   if (w:=view.window()):
     for vs in w.views():
@@ -672,3 +696,8 @@ class SuperbmarkfindresultsappendCommand(sublime_plugin.TextCommand): #run_comma
   def run(self, edit, x=None):
     #self.view.erase(edit, sublime.Region(0, self.view.size()))
     self.view.insert(edit, self.view.size(), x if isinstance(x,str) else '')
+
+class SuperbmarkopenjsonCommand(sublime_plugin.TextCommand):  #run_command('sbotopenjson', 
+  def run(self, edit):
+    if os.path.isfile(LOADDATAJSON):
+      self.view.window().open_file(LOADDATAJSON)

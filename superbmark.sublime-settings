@@ -10,4 +10,7 @@
 
     // Show lines with same content when "List archived bookmarks of current file"
     "search_archived_line_in_current": true,
+
+    // Number of routine daily backups to keep.
+    "keep_backup_copies":14,
 }
