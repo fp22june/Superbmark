@@ -33,6 +33,7 @@ LOADDATAJSON=os.path.join(SETTINGSD, f'{FSNAME}.store.json')
 WORKJSONVER='1'
 SAVEDATAJSON=os.path.join(SETTINGSD, f'{FSNAME}.store.json')
 SAVEJSONVER='1'
+BACKUPSAVEDATAJSON=os.path.join(SETTINGSD, f'{FSNAME}.store.backup.json')
 # SAVEDATAJSON=os.path.join(SETTINGSD, f'{FSNAME}.store')
 # SAVEJSONVER=0
 SETTINGSF=f'{FSNAME}.sublime-settings'
@@ -156,6 +157,8 @@ def updateScope0MarksFromScope1Marks(view):
               ),0)
             vobs.append({**o,"ln":o["ln"]+i})  # 1to1 ln switch if snippets match
             adj+=1
+          else:
+            iobs.append(o.copy())
         else:
           iobs.append(o.copy())
       appendArchiveOfFile(p,f,[timemarkarchive(view,o) for o in iobs])
@@ -204,6 +207,37 @@ def toggleScopedMark(s,p,f,r,view):
   obs=sorted(obs, key=lambda x: x["ln"])
   setScopedMarksOfFile(s,p,f,obs)
 
+def loadjson(j):
+  jd=json.load(j)
+  loadedver=jd.get('ver')
+  for pf, fs in jd.items(): # if os.path.exists(pf):     #mod retain invalid
+    if pf=='ver':
+      continue
+    SESSION[pf]={}
+    for fn, ds in fs.items():  # if os.path.exists(fn) and len(lines) > 0:     #mod retain invalid
+      SESSION[pf][fn]={}
+      if WORKJSONVER=='1':
+        if loadedver=='1':
+          for k, v in ds.items():
+            if k in [*ENUMMARKSCOPE, INVALIDMARK]:
+              t=[]
+              for o in v:
+                if o.get("ln") is not None:
+                  ao={
+                    "ln": o.get("ln")
+                  }
+                  if "tp"  in o:  ao["tp"]=o.get("tp")
+                  if "ts"  in o:  ao["ts"]=o.get("ts")
+                  if "c"   in o:   ao["c"]=o.get("c")
+                  if "tpa" in o: ao["tpa"]=o.get("tpa")
+                  if "tsa" in o: ao["tsa"]=o.get("tsa")
+                  if "ca"  in o:  ao["ca"]=o.get("ca")
+                  t.append(ao)
+              SESSION[pf][fn][k]=t
+            elif k in [S1NAMETS, S1NAMETSLOCAL, S1NAMEROWCOUNT]:
+              SESSION[pf][fn][k]=v
+        else: # cepthomas/SbotSignet 1567db9
+          SESSION[pf][fn]['DATAHOT'] = [{"ln": o} for o in ds]
 def newSessionFromDiskreadJson():
   global SESSION
   SESSION=newSession()
@@ -211,39 +245,20 @@ def newSessionFromDiskreadJson():
   if os.path.isfile(f):
     try:
       with open(f, 'r') as j:
-        jd=json.load(j)
-        loadedver=jd.get('ver')
-        for pf, fs in jd.items(): # if os.path.exists(pf):     #mod retain invalid
-          if pf=='ver':
-            continue
-          SESSION[pf]={}
-          for fn, ds in fs.items():  # if os.path.exists(fn) and len(lines) > 0:     #mod retain invalid
-            SESSION[pf][fn]={}
-            if WORKJSONVER=='1':
-              if loadedver=='1':
-                for k, v in ds.items():
-                  if k in [*ENUMMARKSCOPE, INVALIDMARK]:
-                    t=[]
-                    for o in v:
-                      if o.get("ln") is not None:
-                        ao={
-                          "ln": o.get("ln")
-                        }
-                        if "tp"  in o:  ao["tp"]=o.get("tp")
-                        if "ts"  in o:  ao["ts"]=o.get("ts")
-                        if "c"   in o:   ao["c"]=o.get("c")
-                        if "tpa" in o: ao["tpa"]=o.get("tpa")
-                        if "tsa" in o: ao["tsa"]=o.get("tsa")
-                        if "ca"  in o:  ao["ca"]=o.get("ca")
-                        t.append(ao)
-                    SESSION[pf][fn][k]=t
-                  elif k in [S1NAMETS, S1NAMETSLOCAL, S1NAMEROWCOUNT]:
-                    SESSION[pf][fn][k]=v
-              else: # cepthomas/SbotSignet 1567db9
-                SESSION[pf][fn]['DATAHOT'] = [{"ln": o} for o in ds]
+        loadjson(j)
+      debugprint(f'DATAJSON {f} loaded')
     except Exception as e:
       debugprint(f'Failed to read {f}: {e}')
-      raise
+      f2=BACKUPSAVEDATAJSON
+      debugprint(f'Try to read {f2}')
+      if os.path.isfile(f2):
+        try:
+          with open(f2, 'r') as j:
+            loadjson(j)
+          debugprint(f'DATAJSON BACKUP {f2} loaded')
+        except Exception as e:
+          debugprint(f'Failed to read backup {f2}: {e}')
+          
 def writeJsonFromSession():
   timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
   f = f"{SAVEDATAJSON}.{timestamp}.tmp"
@@ -260,7 +275,7 @@ def writeJsonFromSession():
               }, fp, indent=2)
   except Exception as e:
       debugprint(f'Failed to generate temporary {f}: {e}')
-      raise
+      
   y4m2d2=datetime.datetime.now().strftime("%Y%m%d")
   f2=os.path.join(SETTINGSD, f"{FSNAME}.store.{y4m2d2}.json")
   if not os.path.exists(f2):
@@ -268,11 +283,23 @@ def writeJsonFromSession():
       shutil.copy(f, f2)
     except Exception as e:
       debugprint(f'Failed to backup {f2}: {e}')
+      
   try:
+      if os.path.isfile(SAVEDATAJSON):
+        try:
+          os.replace(SAVEDATAJSON, BACKUPSAVEDATAJSON)
+          debugprint(f'DATAJSON BACKUP {BACKUPSAVEDATAJSON} saved')
+        except Exception as e:
+          debugprint(f'Failed to write backup {BACKUPSAVEDATAJSON}: {e}')
+      os.replace(f, SAVEDATAJSON)
+      debugprint(f'DATAJSON {SAVEDATAJSON} saved')
+  except Exception as e:
+      debugprint(f'Failed to write {f}: {e}')
+      
       os.replace(f, SAVEDATAJSON)
   except Exception as e:
       debugprint(f'Failed to write {f}: {e}')
-      raise
+      
   if (fs:=[x for x in os.listdir(SETTINGSD) if re.match(rf"^{FSNAME}\.store\.\d+\.json$",x)]):
     k=sublime.load_settings(SETTINGSF).get('keep_backup_copies')
     k=BLANKSETTINGSDEFAULTKEEPBACKUP if k is None else k
@@ -435,13 +462,14 @@ class SuperbmarktoggleCommand(sublime_plugin.TextCommand):
       and (w:=view.window())
       and (pf:=w.project_file_name()) # is project
       and (rs:=rowsFromViewRegions(view)) is not None # empty[] truthy
-      and (caret:=view.sel()[0].b if len(view.sel()) == 1 else None) is not None # 0 truthy
-      and (rc:=view.rowcol(caret)) # invalid input outputs (0,0), is truthy         CAUTION invalid
+      and (carets:=[x.b for x in view.sel()] if len(view.sel()) >= 1 else None) is not None # 0 truthy
+      and (rcs:=[view.rowcol(caret) for caret in carets]) # invalid input outputs (0,0), is truthy         CAUTION invalid
     ):
       updateScope0MarksFromViewRegions(view)
-      if rc[0] is not None: # 0 truthy
+      if any([rc[0] is not None for rc in rcs]): # 0 truthy
         p=getProject(pf) or newProject(pf)
-        toggleScopedMark('DATAHOT',p,f,rc[0],view)
+        for rc in rcs:
+          toggleScopedMark('DATAHOT',p,f,rc[0],view)
         if not view.is_dirty(): newScope1MarksAndTSFromScope0Marks(p,f,view)
         cleanScope1OfFile(p,f)
       updateViewRegionsFromScopedMarks('DATAHOT',view)
