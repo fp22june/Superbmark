@@ -266,13 +266,13 @@ def newSessionFromDiskreadJson():
         except Exception as e:
           debugprint(f'Failed to read backup {f2}: {e}')
 
-LASTSAVEDSESSION=None
+lastsavedsession=None
 wQ = queue.Queue()
 def writeJsonFromSession():
-  global LASTSAVEDSESSION
+  global lastsavedsession
   global wQ
-  if LASTSAVEDSESSION!=SESSION:
-    LASTSAVEDSESSION=copy.deepcopy(SESSION)
+  if programstarted and lastsavedsession!=SESSION:
+    lastsavedsession=copy.deepcopy(SESSION)
     wQ.put(copy.deepcopy(SESSION))
 def writer():
   global wQ
@@ -358,14 +358,17 @@ def newfindresultsview(view):
     # })
     return v
 
+programstarted=False
 class E20260901(sublime_plugin.EventListener):
   def on_init(self, views):
+    global programstarted
     newSessionFromDiskreadJson()
     if len(views) > 0 and views[0].window() is not None:
       for view in views:
         if not view.is_dirty():
           updateScope0MarksFromScope1Marks(view)
         updateViewRegionsFromScopedMarks('DATAHOT',view)
+    programstarted=True
   def on_load_project(self, window): #  Project > Open; ! Not triggered at program start even if project restored  
     for view in window.views():
         if not view.is_dirty():
