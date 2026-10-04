@@ -1,8 +1,12 @@
-Sublime Text 4 line bookmarking across sessions and external content modifications such as git checkout. Demo videos
+Sublime Text 4 line bookmarking across sessions and external content modifications such as git checkout.
+
+Demo1: Toggle, listing. Double click opening ("File Results" functionality), detect missing.
 
 ![loading demo1.gif (5M)](demo1.gif)
 
 ![download demo1.webm (0.5M)](https://raw.githubusercontent.com/fp22june/superbmark/main/demo1.webm)
+
+Demo2: Changed by git reset cmd (old version). Newer version tries to auto adjust bookmark line number first.
 
 ![loading demo2.gif (2M)](demo2.gif)
 
@@ -15,6 +19,7 @@ Run commands with **Tools > Command Palette...** (Default: Ctrl + Shift + P ),
 * Superbmark: Previous bookmark
 * Superbmark: List bookmarks in the current project
 * Superbmark: List archived bookmarks of the current file
+* Superbmark: Open bookmark data storage json file 
 
 Keyboard shortcuts **Preferences > Package settings > Superbmark > Key bindings**
 ```json
@@ -50,6 +55,8 @@ bug report, pr, feature request, review welcome
     update splitviews when toggle bookmark in either
     search and show matching lines of current when listing archived bookmarks
     try auto update line number after revert or extmod
+    daily backup x 14
+    single thread queued file saving
   bugsreported
     -
 
@@ -61,6 +68,7 @@ bug report, pr, feature request, review welcome
     add man cmd - clear all archive of file               show_input_panel type confirm
     add man cmd - backup project bookmarks   show_quick_panel
     >6mo dist packagecontrol
+    demo video update - changed by git reset cmd
   todo long
     ?status show bookmark count within selection?  cautious blocking on_selection 
     add man cmd - clear hot, clear project    show_input_panel type confirm

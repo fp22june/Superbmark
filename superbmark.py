@@ -12,6 +12,9 @@ import copy
 import shutil
 import heapq
 import re
+import threading
+import queue
+import math
 import Default.send2trash
 try:
   from .sublimeapistudy import debugprint
@@ -246,7 +249,9 @@ def newSessionFromDiskreadJson():
     try:
       with open(f, 'r') as j:
         loadjson(j)
-      debugprint(f'DATAJSON {f} loaded')
+      s=os.path.getsize(f)
+      s=0 if s==0 else math.ceil(s/1000)
+      debugprint(f'_W_LOAD DATAJSON         {f} ({s} KB)')
     except Exception as e:
       debugprint(f'Failed to read {f}: {e}')
       f2=BACKUPSAVEDATAJSON
@@ -255,61 +260,81 @@ def newSessionFromDiskreadJson():
         try:
           with open(f2, 'r') as j:
             loadjson(j)
-          debugprint(f'DATAJSON BACKUP {f2} loaded')
+          s=os.path.getsize(f2)
+          s=0 if s==0 else math.ceil(s/1000)
+          debugprint(f'_W_LOAD DATAJSON BACKUP  {f2} ({s} KB)')
         except Exception as e:
           debugprint(f'Failed to read backup {f2}: {e}')
-          
+
+LASTSAVEDSESSION=None
+wQ = queue.Queue()
 def writeJsonFromSession():
-  timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-  f = f"{SAVEDATAJSON}.{timestamp}.tmp"
-  try:
-      with open(f, 'w') as fp:
-        if WORKJSONVER=='1':
-          if SAVEJSONVER=='1':
-            json.dump(SESSION, fp, indent=2)
-          else: # cepthomas/SbotSignet 1567db9
-            json.dump({
-                pf: {fn: [v['ln'] for v in ds['DATAHOT']] 
-                    for fn, ds in fs.items()}
-                for pf, fs in SESSION.items() if pf != 'ver'
-              }, fp, indent=2)
-  except Exception as e:
-      debugprint(f'Failed to generate temporary {f}: {e}')
-      
-  y4m2d2=datetime.datetime.now().strftime("%Y%m%d")
-  f2=os.path.join(SETTINGSD, f"{FSNAME}.store.{y4m2d2}.json")
-  if not os.path.exists(f2):
-    try:
-      shutil.copy(f, f2)
-    except Exception as e:
-      debugprint(f'Failed to backup {f2}: {e}')
-      
-  try:
+  global LASTSAVEDSESSION
+  global wQ
+  if LASTSAVEDSESSION!=SESSION:
+    LASTSAVEDSESSION=copy.deepcopy(SESSION)
+    wQ.put(copy.deepcopy(SESSION))
+def writer():
+  global wQ
+  while True:
+    data=wQ.get()
+    if data is not None:
+      timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+      f = f"{SAVEDATAJSON}.{timestamp}.tmp"
+      try:
+          with open(f, 'w') as fp:
+            if WORKJSONVER=='1':
+              if SAVEJSONVER=='1':
+                json.dump(data, fp, indent=2)
+              else: # cepthomas/SbotSignet 1567db9
+                json.dump({
+                    pf: {fn: [v['ln'] for v in ds['DATAHOT']] 
+                        for fn, ds in fs.items()}
+                    for pf, fs in data.items() if pf != 'ver'
+                  }, fp, indent=2)
+          s=os.path.getsize(f)
+          s=0 if s==0 else math.ceil(s/1000)
+          debugprint(f'_W_SAVE Temporary        {f} ({s} KB)')
+      except Exception as e:
+          debugprint(f'Failed to generate temporary {f}: {e}')
+          
+      #daily once only
+      y4m2d2=datetime.datetime.now().strftime("%Y%m%d")
+      f2=os.path.join(SETTINGSD, f"{FSNAME}.store.{y4m2d2}.json")
+      if not os.path.exists(f2):
+        try:
+          shutil.copy(f, f2)
+          debugprint(f'_W_SAVE DAILY BACKUP     {f2}')
+        except Exception as e:
+          debugprint(f'Failed to backup {f2}: {e}')
+      #backup previous
       if os.path.isfile(SAVEDATAJSON):
         try:
           os.replace(SAVEDATAJSON, BACKUPSAVEDATAJSON)
-          debugprint(f'DATAJSON BACKUP {BACKUPSAVEDATAJSON} saved')
+          debugprint(f'_W_SAVE DATAJSON BACKUP  {BACKUPSAVEDATAJSON}')
         except Exception as e:
           debugprint(f'Failed to write backup {BACKUPSAVEDATAJSON}: {e}')
-      os.replace(f, SAVEDATAJSON)
-      debugprint(f'DATAJSON {SAVEDATAJSON} saved')
-  except Exception as e:
-      debugprint(f'Failed to write {f}: {e}')
-      
-      os.replace(f, SAVEDATAJSON)
-  except Exception as e:
-      debugprint(f'Failed to write {f}: {e}')
-      
-  if (fs:=[x for x in os.listdir(SETTINGSD) if re.match(rf"^{FSNAME}\.store\.\d+\.json$",x)]):
-    k=sublime.load_settings(SETTINGSF).get('keep_backup_copies')
-    k=BLANKSETTINGSDEFAULTKEEPBACKUP if k is None else k
-    def ymdsum(x):
-      if (ymd:=re.match(r"\.(\d{4})(\d{2})(\d{2})\.json$",x)):
-        return int(ymd[0])*10000 + int(ymd[1])*100 + int(ymd[2])
-      else:
-        return 0
-    [Default.send2trash.send2trash(os.path.join(SETTINGSD,x)) for x in fs 
-    if x not in set(heapq.nlargest(k, fs, key=lambda x:ymdsum(x)))]
+      #live
+      try:
+          os.replace(f, SAVEDATAJSON)
+          debugprint(f'_W_SAVE DATAJSON         {SAVEDATAJSON}')
+      except Exception as e:
+          debugprint(f'Failed to write {f}: {e}')
+      #cleanup
+      if (fs:=[x for x in os.listdir(SETTINGSD) if re.match(rf"^{FSNAME}\.store\.\d+\.json$",x)]):
+        k=sublime.load_settings(SETTINGSF).get('keep_backup_copies')
+        k=BLANKSETTINGSDEFAULTKEEPBACKUP if k is None else k
+        def ymdsum(x):
+          if (ymd:=re.match(r"\.(\d{4})(\d{2})(\d{2})\.json$",x)):
+            return int(ymd[0])*10000 + int(ymd[1])*100 + int(ymd[2])
+          else:
+            return 0
+        [Default.send2trash.send2trash(os.path.join(SETTINGSD,x)) for x in fs 
+        if x not in set(heapq.nlargest(k, fs, key=lambda x:ymdsum(x)))]
+      wQ.task_done()
+wT=threading.Thread(target=writer, daemon=True)
+wT.start()
+
 def getfindresultsview(view):
   if (w:=view.window()):
     for vs in w.views():

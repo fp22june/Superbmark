@@ -59,8 +59,8 @@ def debugprint(x=None):
 #       debugprint("undo")
 #       return None
 #   def on_init(self, views):
-#     print(str(self))
-#     file_path = self.views[0].file_name() # cannot get py folder
+#     # print(str(self))
+#     file_path = views[0].file_name() # cannot get py folder
 #     folder_path = os.path.dirname(file_path)
 #     folder_name = os.path.basename(folder_path)
 #     print("APISTUDY Folder Path:"+folder_path)
@@ -75,11 +75,11 @@ def debugprint(x=None):
 #     #         debugprint(view.file_name())
 #     def on_load_project(self, window):
 #         debugprint()
-#         debugprint(self.view.window().project_file_name())
+#         debugprint(window.project_file_name())
 #         # for view in window.views():
 #     def on_pre_close_project(self, window):
 #         debugprint()
-#         debugprint(self.view.window().project_file_name())
+#         debugprint(window.project_file_name())
 #     def on_load(self, view):
 #         debugprint(view.file_name())
 #     def on_pre_close(self, view):
