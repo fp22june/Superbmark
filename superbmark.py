@@ -57,24 +57,26 @@ def rowsFromViewRegions(view):
     lns.sort()
     return lns
 
-def newSession():                     return (SESSION:={'ver': WORKJSONVER})
-def newProject(x):                    SESSION[x]={}; return SESSION[x]
+def newSession():                     return ({'ver': WORKJSONVER})
+def newProject(x):                    global SESSION; SESSION[x]={}; return SESSION[x]
 def getProject(x):                    return SESSION.get(x)
 def newFile(p,f):                     p[f]={}; return p[f]
-def getFile(p,f):                     return p.get(f) if p is not None else None
-def setFile(p,f,fos):                 p[f]=fos
-def newScopedMarksOfFile(s,p,f):      rs=getFile(p,f) or newFile(p,f); rs[s]=[]; return rs[s]      # p=getProject(str), f=view.file_name()
-def getScopedMarksOfFile(s,p,f):      return rs.get(s)                 if(rs:=getFile(p,f)) is not None else None
-def setScopedMarksOfFile(s,p,f,obs):  rs=getFile(p,f) or newFile(p,f); rs[s]=obs
-def getScope1TSOfFile(p,f):           return rs.get(S1NAMETS)          if(rs:=getFile(p,f)) is not None else None
+def getFile(p,f):                     return p.get(f)                                 if p is not None else None
+def setFile(p,f,fos):                 rs=getFile(p,f) or newFile(p,f); rs=copy.deepcopy(fos)
+# above - Project and File get by ref (mutable CAUTIOUS), set by value (deepcopy)
+# below - get and set by value (deepcopy or empty[])
+def newScopedMarksOfFile(s,p,f):      rs=getFile(p,f) or newFile(p,f); rs[s]=[]; return []      # p=getProject(str), f=view.file_name()
+def getScopedMarksOfFile(s,p,f):      return copy.deepcopy(rs.get(s))                 if(rs:=getFile(p,f)) is not None else None
+def setScopedMarksOfFile(s,p,f,obs):  rs=getFile(p,f) or newFile(p,f); rs[s]=copy.deepcopy(obs)
+def getScope1TSOfFile(p,f):           return copy.deepcopy(rs.get(S1NAMETS))          if(rs:=getFile(p,f)) is not None else None
 def setScope1TSOfFile(p,f,t):         rs=getFile(p,f) or newFile(p,f); rs[S1NAMETS]=t; rs[S1NAMETSLOCAL]=datetime.datetime.fromtimestamp(t).strftime('%Y-%m-%d %a %H:%M:%S')
-def getScope1RCOfFile(p,f):           return rs.get(S1NAMEROWCOUNT)          if(rs:=getFile(p,f)) is not None else None
+def getScope1RCOfFile(p,f):           return copy.deepcopy(rs.get(S1NAMEROWCOUNT))    if(rs:=getFile(p,f)) is not None else None
 def setScope1RCOfFile(p,f,x):         rs=getFile(p,f) or newFile(p,f); rs[S1NAMEROWCOUNT]=x
 def cleanScope1OfFile(p,f):           (rs:=getFile(p, f)) and (len(rs.get('DATAFILETIME')or[])==0) and (rs.pop('DATAFILETIME',None), rs.pop(S1NAMETS,None), rs.pop(S1NAMETSLOCAL,None), rs.pop(S1NAMEROWCOUNT,None))
-def getArchiveOfFile(p,f):            return rs.get(INVALIDMARK)        if(rs:=getFile(p,f)) is not None else None
-def setArchiveOfFile(p,f,obs):        rs=getFile(p,f) or newFile(p,f); rs[INVALIDMARK]=obs
-def newArchiveOfFile(p,f):            rs=getFile(p,f) or newFile(p,f); rs[INVALIDMARK]=[]; return rs[INVALIDMARK]
-def appendArchiveOfFile(p,f,obs):     a=getArchiveOfFile(p,f) or newArchiveOfFile(p,f); a+=obs
+def getArchiveOfFile(p,f):            return copy.deepcopy(rs.get(INVALIDMARK))       if(rs:=getFile(p,f)) is not None else None
+def setArchiveOfFile(p,f,obs):        rs=getFile(p,f) or newFile(p,f); rs[INVALIDMARK]=copy.deepcopy(obs)
+def newArchiveOfFile(p,f):            rs=getFile(p,f) or newFile(p,f); rs[INVALIDMARK]=[]; return []
+def appendArchiveOfFile(p,f,obs):     a=getArchiveOfFile(p,f) or newArchiveOfFile(p,f); a+=copy.deepcopy(obs); setArchiveOfFile(p,f,a)
 def newMark(view,r):
   return {
     "tp": time.strftime("%Y-%m-%d %a %H:%M:%S", time.localtime()),
@@ -211,6 +213,7 @@ def toggleScopedMark(s,p,f,r,view):
   setScopedMarksOfFile(s,p,f,obs)
 
 def loadjson(j):
+  global SESSION
   jd=json.load(j)
   loadedver=jd.get('ver')
   for pf, fs in jd.items(): # if os.path.exists(pf):     #mod retain invalid
@@ -266,13 +269,13 @@ def newSessionFromDiskreadJson():
         except Exception as e:
           debugprint(f'Failed to read backup {f2}: {e}')
 
-lastsavedsession=None
+lastsavedsession=None #todo hash 1/3
 wQ = queue.Queue()
 def writeJsonFromSession():
   global lastsavedsession
   global wQ
   if programstarted and lastsavedsession!=SESSION:
-    lastsavedsession=copy.deepcopy(SESSION)
+    lastsavedsession=copy.deepcopy(SESSION) #todo hash 2/3
     wQ.put(copy.deepcopy(SESSION))
 def writer():
   global wQ
@@ -332,8 +335,7 @@ def writer():
         [Default.send2trash.send2trash(os.path.join(SETTINGSD,x)) for x in fs 
         if x not in set(heapq.nlargest(k, fs, key=lambda x:ymdsum(x)))]
       wQ.task_done()
-wT=threading.Thread(target=writer, daemon=True)
-wT.start()
+threading.Thread(target=writer, daemon=True).start()
 
 def getfindresultsview(view):
   if (w:=view.window()):
@@ -362,12 +364,14 @@ programstarted=False
 class E20260901(sublime_plugin.EventListener):
   def on_init(self, views):
     global programstarted
+    global lastsavedsession
     newSessionFromDiskreadJson()
     if len(views) > 0 and views[0].window() is not None:
       for view in views:
         if not view.is_dirty():
           updateScope0MarksFromScope1Marks(view)
         updateViewRegionsFromScopedMarks('DATAHOT',view)
+    lastsavedsession=copy.deepcopy(SESSION) #todo hash 3/3
     programstarted=True
   def on_load_project(self, window): #  Project > Open; ! Not triggered at program start even if project restored  
     for view in window.views():
@@ -476,9 +480,8 @@ class E20260901(sublime_plugin.EventListener):
         def check():
           rs=rowsFromViewRegions(view)
           if rs==[]:
-            setFile(p,f,fobspreundocopy)
+            setFile(p,f,fobspreundo)
             updateViewRegionsFromScopedMarks('DATAHOT',view)
-        fobspreundocopy=copy.deepcopy(fobspreundo)
         sublime.set_timeout(lambda:check(), 10)
 class SuperbmarktoggleCommand(sublime_plugin.TextCommand):
   def is_visible(self):
