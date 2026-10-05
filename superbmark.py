@@ -739,10 +739,11 @@ class SuperbmarklistarchivedCommand(sublime_plugin.TextCommand): #run_command('s
                 if p["ln"]+1<=len(ls) else 
                 ('\n'+           ' '.rjust(5)+'  current file ends prior to the bookmark line number')
            )
+          +"\n"
           +(  ("\n".join(
-                ['\n'+str(      i+1).rjust(5)+": <= found a line in current with the exact same content" for i,x in enumerate(ls) if x == str(p['c'])] # strip()?
+                [     str(      i+1).rjust(5)+": <= found a line in current with the exact same content" for i,x in enumerate(ls) if x == str(p['c'])] # strip()?
                 or
-                ['\n'+           ' '.rjust(5)+'  current file does not have any line with the exact same content']
+                [                ' '.rjust(5)+'  current file does not have any line with the exact same content']
                 )
               ) if sublime.load_settings(SETTINGSF).get('search_archived_line_in_current') or False else ''
            )
@@ -755,8 +756,99 @@ class SuperbmarkfindresultsappendCommand(sublime_plugin.TextCommand): #run_comma
   def run(self, edit, x=None):
     #self.view.erase(edit, sublime.Region(0, self.view.size()))
     self.view.insert(edit, self.view.size(), x if isinstance(x,str) else '')
-
-class SuperbmarkopenjsonCommand(sublime_plugin.TextCommand):  #run_command('sbotopenjson', 
+class SuperbmarkopenjsonCommand(sublime_plugin.TextCommand):  #run_command('superbmarkopenjson', 
   def run(self, edit):
     if os.path.isfile(LOADDATAJSON):
       self.view.window().open_file(LOADDATAJSON)
+
+def lineon(t1,t2): return f"Bookmarked Line {int(t1+1)} on {t2}"
+def lineonmatch(t1,t2,t3): return f"Line {int(t1+1)} on {t2}"+(f" ({t3} matching line{"s"if t3>1 else""} in current file)" if t3>0 else"")
+def selandjump(view,rs):
+  if len(rs)>0:
+    view.sel().clear()
+    view.sel().add_all(rs)
+    if len(rs)==1:
+      view.show(rs[0], show_surrounds=True, keep_to_left=False, animate=True)
+      # hacky force redraw
+      pos = view.viewport_position()
+      view.set_viewport_position((pos[0], pos[1] + 1), animate=False)
+      view.set_viewport_position((pos[0], pos[1]), animate=False)
+def jumptoobs(view,obsi):
+  if(   (f:=view.file_name())
+    and (w:=view.window())
+    and (pf:=w.project_file_name()) # is project
+    and (p:=getProject(pf)) # {}empty falsy
+    and (obs:=getArchiveOfFile(p,f)) # empty[] falsy
+    and (pt:=view.text_point(obs[obsi]["ln"],0)) is not None
+  ):
+    rs=[sublime.Region(pt, pt)]
+    selandjump(view,rs)
+def managearchives(view):
+  if(   (f:=view.file_name())
+    and (w:=view.window())
+    and (pf:=w.project_file_name()) # is project
+    and (p:=getProject(pf)) # {}empty falsy
+    and (obs:=getArchiveOfFile(p,f)) # empty[] falsy
+  ):
+    curs=[*view.sel()]
+    ls=view.substr(sublime.Region(0, view.size())).splitlines()
+    view.window().show_quick_panel(
+      ["Cancel and go back"]+ [ [lineonmatch(o['ln'], o['tp'], len([x for x in ls if x == str(o['c'])])) , str(o['c'])] for o in obs]
+      ,on_select=lambda selected: None if selected==-1 else selandjump(view, curs) if selected==0 else panel2(view, selected-1, obs)
+      ,on_highlight=lambda highlighted: None if highlighted==-1 else selandjump(view, curs) if highlighted==0 else jumptoobs(view, highlighted-1)
+      ,selected_index=0
+      ,placeholder="Switch highlight to jump to. ESC to cancel and stay."
+      ,flags=sublime.KEEP_OPEN_ON_FOCUS_LOST)
+  else:
+    sublime.status_message(u"🔖 nothing in archive.")
+def removeonly(view,x):
+  if(   (f:=view.file_name())
+    and (w:=view.window())
+    and (pf:=w.project_file_name()) # is project
+    and (p:=getProject(pf)) # {}empty falsy
+    and (obs:=getArchiveOfFile(p,f)) # empty[] falsy
+  ):
+    obs.pop(x)
+    setArchiveOfFile(p,f,obs)
+    sublime.status_message(u"🔖 1 archived bookmark removed.")
+def panel2(view, i, obs):
+  o=obs[i]
+  ls=view.substr(sublime.Region(0, view.size())).splitlines()
+  m=[{"ln":i,"c":x} for i,x in enumerate(ls) if x == str(o['c'])]
+  if len(m)==0:
+    view.window().show_quick_panel(
+      [ [lineon(o['ln'],o['tp']) , str(o['c'])] 
+       ,["Cancel"] #default selected_index
+       ,["Delete the archived bookmark"]
+      ]
+      ,on_select=lambda k: None if k==-1 else panel2(view, i, obs) if k==0 else removeonly(view,i) if k==2 else None
+      ,on_highlight=lambda k: None if k==-1 else jumptoobs(view, i) if k==0 else None 
+      ,selected_index=1
+      ,flags=sublime.KEEP_OPEN_ON_FOCUS_LOST)
+  elif len(m)==1:
+    t=view.text_point(m[0]["ln"],0)
+    r=[sublime.Region(t,t)]
+    view.window().show_quick_panel(
+      [ [lineon(o['ln'],o['tp']) , str(o['c'])] 
+       ,[f"Match current Line {m[0]["ln"]+1}" , m[0]["c"]] 
+       ,["Cancel"] #default selected_index
+       ,["Delete the archived bookmark"]
+      ]
+      ,on_select=lambda k: None if k==-1 else panel2(view, i, obs) if (k==0 or k==1) else removeonly(view,i) if k==3 else None
+      ,on_highlight=lambda k: None if k==-1 else jumptoobs(view, i) if k==0 else selandjump(view, r) if k==1 else None 
+      ,selected_index=2
+      ,flags=sublime.KEEP_OPEN_ON_FOCUS_LOST)
+  else:
+    view.window().show_quick_panel(
+      [ [lineon(o['ln'],o['tp']) , str(o['c'])] 
+       ,[f"List {len(m)} matching lines ..."] 
+       ,["Cancel"] #default selected_index
+       ,["Delete the archived bookmark"]
+      ]
+      ,on_select=lambda k: None if k==-1 else panel2(view, i, obs) if k==0 else view.run_command('superbmarklistarchived') if k==1 else removeonly(view,i) if k==3 else None
+      ,on_highlight=lambda k: None if k==-1 else jumptoobs(view, i) if k==0 else None 
+      ,selected_index=2
+      ,flags=sublime.KEEP_OPEN_ON_FOCUS_LOST)
+class SuperbmarkarchivedbookmarksshowpanelCommand(sublime_plugin.TextCommand):  #run_command('superbmarkarchivedbookmarksshowpanel', 
+  def run(self, edit):
+    managearchives(self.view)
