@@ -19,6 +19,7 @@ Run commands with **Tools > Command Palette...** (Default: Ctrl + Shift + P ),
 * Superbmark: Previous bookmark
 * Superbmark: List bookmarks in the current project
 * Superbmark: List archived bookmarks of the current file
+* Superbmark: Edit archived bookmarks of the current file
 * Superbmark: Open bookmark data storage json file 
 
 Keyboard shortcuts **Preferences > Package settings > Superbmark > Key bindings**
@@ -57,6 +58,7 @@ bug report, pr, feature request, review welcome
     try auto update line number after revert or extmod
     daily backup x 14
     single thread queued file saving
+    archive management
   bugsreported
     -
 
@@ -64,7 +66,6 @@ bug report, pr, feature request, review welcome
   dev   numbered commits may not run, often get forcepushed
 
   todo priority
-    add man cmd - clear selected archive               show_quick_panel
     add man cmd - clear all archive of file               show_input_panel type confirm
     add man cmd - backup project bookmarks   show_quick_panel
     >6mo dist packagecontrol
