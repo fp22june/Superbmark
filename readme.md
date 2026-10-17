@@ -2,13 +2,13 @@ Sublime Text 4 line bookmarking across sessions and external content modificatio
 
 Demo1: Toggle, listing. Double click opening ("File Results" functionality), detect missing.
 
-![loading demo1.gif (5M)](demo1.gif)
+![loading demo1p.gif (5M)](demo1.gif)
 
 ![download demo1.webm (0.5M)](https://raw.githubusercontent.com/fp22june/superbmark/main/demo1.webm)
 
 Demo2: Changed by git reset cmd (old version). Newer version tries to auto adjust bookmark line number first.
 
-![loading demo2.gif (2M)](demo2.gif)
+![loading demo2p.gif (2M)](demo2.gif)
 
 ![download demo2.webm (0.5M)](https://raw.githubusercontent.com/fp22june/superbmark/main/demo2.webm)
 
