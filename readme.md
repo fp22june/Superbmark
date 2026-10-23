@@ -17,9 +17,11 @@ Run commands with **Tools > Command Palette...** (Default: Ctrl + Shift + P ),
 * Superbmark: Toggle bookmark
 * Superbmark: Next bookmark
 * Superbmark: Previous bookmark
-* Superbmark: List bookmarks in the current project
-* Superbmark: List archived bookmarks of the current file
-* Superbmark: Edit archived bookmarks of the current file
+* Superbmark: Remove all bookmarks in the current file
+* Superbmark: Edit archived bookmarks in the current file (interactive)
+* Superbmark: List archived bookmarks in the current file (plaintext)
+* Superbmark: Remove all archived bookmarks in the current file
+* Superbmark: List bookmarks in the current project (plaintext)
 * Superbmark: Open bookmark data storage json file 
 
 Keyboard shortcuts **Preferences > Package settings > Superbmark > Key bindings**
@@ -59,6 +61,7 @@ bug report, pr, feature request, review welcome
     daily backup x 14
     single thread queued file saving
     archive management
+    remove all archive of file cmd
   bugsreported
     -
 
@@ -66,8 +69,6 @@ bug report, pr, feature request, review welcome
   dev   numbered commits may not run, often get forcepushed
 
   todo priority
-    add man cmd - clear all archive of file               show_input_panel type confirm
-    add man cmd - backup project bookmarks   show_quick_panel
     >6mo dist packagecontrol
     demo video update - changed by git reset cmd
   todo long
@@ -90,6 +91,7 @@ bug report, pr, feature request, review welcome
     plain json 
       notplanned bookmarks storage at sublime-worksp/project
       textedit freedom eg after proj and folder rename
+    backup project bookmarks cmd   show_quick_panel         < use OS file man
   notes py; notes st
     :=  [] {} 0 falsy is/not None   py 3.8
     View(st class).custommethod= def    per session

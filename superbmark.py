@@ -202,6 +202,12 @@ def updateViewRegionsFromScopedMarks(s,view):
     ]
     view.erase_regions(REGIONNAME)
     view.add_regions(REGIONNAME, regions, str(sublime.load_settings(SETTINGSF).get('scope') or BLANKSETTINGSDEFAULTCOLOR), ICON)
+def removeScope0AndScope1(p,f,view):
+  newScopedMarksOfFile('DATAHOT',p,f)
+  newScopedMarksOfFile('DATAFILETIME',p,f)
+  updateViewRegionsFromScopedMarks('DATAHOT',view)
+  cleanScope1OfFile(p,f)
+  writeJsonFromSession()
 
 def toggleScopedMark(s,p,f,r,view):
   obs=getScopedMarksOfFile(s,p,f) or newScopedMarksOfFile(s,p,f)
@@ -760,6 +766,47 @@ class SuperbmarkopenjsonCommand(sublime_plugin.TextCommand):  #run_command('supe
   def run(self, edit):
     if os.path.isfile(LOADDATAJSON):
       self.view.window().open_file(LOADDATAJSON)
+class SuperbmarkremovecurrentCommand(sublime_plugin.TextCommand):  #run_command('superbmarkremovecurrent',
+  def run(self, edit):
+    view=self.view
+    if(   (f:=view.file_name())
+      and (w:=view.window())
+      and (pf:=w.project_file_name()) # is project
+      and (p:=getProject(pf)) # {}empty falsy
+    ):
+      if(   (oh:=getScopedMarksOfFile('DATAHOT',p,f)) is not None # empty[] truthy
+        and (ob:=getScopedMarksOfFile('DATAFILETIME',p,f)) is not None # empty[] truthy
+        and (oc:=max(len(oh), len(ob))) # 0 falsy
+      ):
+        view.window().show_input_panel(
+          f"Remove {oc} bookmark{'s' if oc>1 else ''} (keeping all archived bookmarks)? Y/N", 
+          "", 
+          lambda r: (removeScope0AndScope1(p,f,view) or sublime.status_message(f"🔖 removed.")) if (r=='Y' or r=='y') else sublime.status_message(f"🔖 cancelled."), 
+          None, 
+          None
+        )
+      else:
+        sublime.status_message(f"🔖 no bookmarks yet.")
+    else:
+      sublime.status_message(u"🔖 no project bookmarks yet.")
+class SuperbmarkremovearchivedCommand(sublime_plugin.TextCommand):  #run_command('superbmarkremovearchived',
+  def run(self, edit):
+    view=self.view
+    if(   (f:=view.file_name())
+      and (w:=view.window())
+      and (pf:=w.project_file_name()) # is project
+      and (p:=getProject(pf)) # {}empty falsy
+      and (obs:=getArchiveOfFile(p,f)) # empty[] falsy
+    ):
+      view.window().show_input_panel(
+        f"Remove {len(obs)} in archive? Y/N", 
+        "", 
+        lambda r: (setArchiveOfFile(p,f,{}) or sublime.status_message(f"🔖 removed.")) if (r=='Y' or r=='y') else sublime.status_message(f"🔖 cancelled."), 
+        None, 
+        None
+      )
+    else:
+      sublime.status_message(u"🔖 nothing in archive.")
 
 def lineon(t1,t2): return f"Bookmarked Line {int(t1+1)} on {t2}"
 def lineonmatch(t1,t2,t3): return f"Line {int(t1+1)} on {t2}"+(f" ({t3} matching line{"s"if t3>1 else""} in current file)" if t3>0 else"")
